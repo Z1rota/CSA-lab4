@@ -11,7 +11,7 @@ def translate(source: str) -> tuple[list[int], list[str]]:
     pc = 0
 
     section = ".text"
-
+    #Pass 1: delete&refact
     parsed_lines = []
     for line in lines:
         line = line.split(";")[0].strip()
@@ -55,7 +55,6 @@ def translate(source: str) -> tuple[list[int], list[str]]:
                     pc += 1
             continue
 
-        # Запоминаем код для второго прохода
         parsed_lines.append((pc, line))
         pc += 1
 
@@ -66,7 +65,6 @@ def translate(source: str) -> tuple[list[int], list[str]]:
         mnemonica = parts[0].upper()
         arg_str = parts[1] if len(parts) > 1 else "0"
 
-        # Замена макросов и меток
         if arg_str in macros:
             arg = macros[arg_str]
         elif arg_str in labels:
