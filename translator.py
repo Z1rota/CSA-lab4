@@ -11,7 +11,7 @@ def translate(source: str) -> tuple[list[int], list[str]]:
     pc = 0
 
     section = ".text"
-    #Pass 1: delete&refact
+    # Pass 1: delete&refact
     parsed_lines = []
     for line in lines:
         line = line.split(";")[0].strip()
