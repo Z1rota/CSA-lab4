@@ -1,0 +1,117 @@
+=== SOURCE CODE ===
+%define PORT_IN 0
+%define PORT_OUT 1
+%define STRING_ADDR 200
+
+.data
+.org 0x00C8 ; 200 в десятичной
+msg: .pstr "Hello" ; Данные лежат тут (200=длина, 201='H'...)
+counter: .word 0
+
+.text
+.org 0x0000
+    EI
+main_loop:
+    ; Бесконечный цикл, ждем пока не напечатаем 5 символов
+    PUSH_M counter
+    PUSH 5
+    CMP
+    JZ main_loop
+
+end:
+    HALT
+
+.org 0x0010 ; Вектор прерываний
+    ; Читаем порт
+    IN PORT_IN
+    ; Выводим обратно (эхо)
+    OUT PORT_OUT
+
+    ; Увеличиваем счетчик (чтобы выйти из программы)
+    PUSH_M counter
+    PUSH 1
+    ADD
+    POP_M counter
+    IRET
+
+=== MACHINE CODE LOG ===
+0000 - 10000000 - EI 0
+0001 - 020000CE - PUSH_M counter
+0002 - 01000005 - PUSH 5
+0003 - 07000000 - CMP 0
+0004 - 09000001 - JZ main_loop
+0005 - 0F000000 - HALT 0
+0010 - 0C000000 - IN PORT_IN
+0011 - 0D000001 - OUT PORT_OUT
+0012 - 020000CE - PUSH_M counter
+0013 - 01000001 - PUSH 1
+0014 - 04000000 - ADD 0
+0015 - 030000CE - POP_M counter
+0016 - 0E000000 - IRET 0
+
+=== EXECUTION LOG ===
+--- Simulation Started ---
+Tick: 0001 | PC: 0000 | Stk: [] | Exec: EI 0
+Tick: 0002 | PC: 0001 | Stk: [0] | Exec: PUSH_M 206
+Tick: 0003 | PC: 0002 | PIPELINE STALL (Wait for Mem)
+Tick: 0004 | PC: 0002 | Stk: [0, 5] | Exec: PUSH 5
+Tick: 0005 | PC: 0003 | Stk: [] | Exec: CMP 0 || JZ 1 (Superscalar)
+Tick: 0006 | PC: 0001 | Stk: [0] | Exec: PUSH_M 206
+Tick: 0007 | PC: 0002 | PIPELINE STALL (Wait for Mem)
+Tick: 0008 | PC: 0002 | Stk: [0, 5] | Exec: PUSH 5
+Tick: 0009 | PC: 0003 | Stk: [] | Exec: CMP 0 || JZ 1 (Superscalar)
+Tick: 0010 |INTERRUPT TRAP
+Tick: 0011 | PC: 0010 | Stk: [72] | Exec: IN 0
+Tick: 0012 | PC: 0011 | Stk: [] | Exec: OUT 1
+Tick: 0013 | PC: 0012 | Stk: [0] | Exec: PUSH_M 206
+Tick: 0014 | PC: 0013 | PIPELINE STALL (Wait for Mem)
+Tick: 0015 | PC: 0013 | Stk: [0, 1] | Exec: PUSH 1
+Tick: 0016 | PC: 0014 | Stk: [] | Exec: ADD 0 || POP_M 206 (Superscalar)
+Tick: 0017 | PC: 0016 | Stk: [] | Exec: IRET 0
+Tick: 0018 | PC: 0001 | Stk: [1] | Exec: PUSH_M 206 [Reverse SWAP bypass] [MemWrite: 206 <- 1]
+Tick: 0019 | PC: 0002 | Stk: [1, 5] | Exec: PUSH 5
+Tick: 0020 |INTERRUPT TRAP
+Tick: 0021 | PC: 0010 | Stk: [1, 5, 101] | Exec: IN 0
+Tick: 0022 | PC: 0011 | Stk: [1, 5] | Exec: OUT 1
+Tick: 0023 | PC: 0012 | Stk: [1, 5, 1] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0024 | PC: 0013 | Stk: [1, 5, 1, 1] | Exec: PUSH 1
+Tick: 0025 | PC: 0014 | Stk: [1, 5] | Exec: ADD 0 || POP_M 206 (Superscalar)
+Tick: 0026 | PC: 0016 | Stk: [1, 5] | Exec: IRET 0
+Tick: 0027 | PC: 0003 | Stk: [] | Exec: CMP 0 || JZ 1 (Superscalar) [MemWrite: 206 <- 2]
+Tick: 0028 | PC: 0001 | Stk: [2] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0029 | PC: 0002 | Stk: [2, 5] | Exec: PUSH 5
+Tick: 0030 |INTERRUPT TRAP
+Tick: 0031 | PC: 0010 | Stk: [2, 5, 108] | Exec: IN 0
+Tick: 0032 | PC: 0011 | Stk: [2, 5] | Exec: OUT 1
+Tick: 0033 | PC: 0012 | Stk: [2, 5, 2] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0034 | PC: 0013 | Stk: [2, 5, 2, 1] | Exec: PUSH 1
+Tick: 0035 | PC: 0014 | Stk: [2, 5] | Exec: ADD 0 || POP_M 206 (Superscalar)
+Tick: 0036 | PC: 0016 | Stk: [2, 5] | Exec: IRET 0
+Tick: 0037 | PC: 0003 | Stk: [] | Exec: CMP 0 || JZ 1 (Superscalar) [MemWrite: 206 <- 3]
+Tick: 0038 | PC: 0001 | Stk: [3] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0039 | PC: 0002 | Stk: [3, 5] | Exec: PUSH 5
+Tick: 0040 |INTERRUPT TRAP
+Tick: 0041 | PC: 0010 | Stk: [3, 5, 108] | Exec: IN 0
+Tick: 0042 | PC: 0011 | Stk: [3, 5] | Exec: OUT 1
+Tick: 0043 | PC: 0012 | Stk: [3, 5, 3] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0044 | PC: 0013 | Stk: [3, 5, 3, 1] | Exec: PUSH 1
+Tick: 0045 | PC: 0014 | Stk: [3, 5] | Exec: ADD 0 || POP_M 206 (Superscalar)
+Tick: 0046 | PC: 0016 | Stk: [3, 5] | Exec: IRET 0
+Tick: 0047 | PC: 0003 | Stk: [] | Exec: CMP 0 || JZ 1 (Superscalar) [MemWrite: 206 <- 4]
+Tick: 0048 | PC: 0001 | Stk: [4] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0049 | PC: 0002 | Stk: [4, 5] | Exec: PUSH 5
+Tick: 0050 |INTERRUPT TRAP
+Tick: 0051 | PC: 0010 | Stk: [4, 5, 111] | Exec: IN 0
+Tick: 0052 | PC: 0011 | Stk: [4, 5] | Exec: OUT 1
+Tick: 0053 | PC: 0012 | Stk: [4, 5, 4] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0054 | PC: 0013 | Stk: [4, 5, 4, 1] | Exec: PUSH 1
+Tick: 0055 | PC: 0014 | Stk: [4, 5] | Exec: ADD 0 || POP_M 206 (Superscalar)
+Tick: 0056 | PC: 0016 | Stk: [4, 5] | Exec: IRET 0
+Tick: 0057 | PC: 0003 | Stk: [] | Exec: CMP 0 || JZ 1 (Superscalar) [MemWrite: 206 <- 5]
+Tick: 0058 | PC: 0001 | Stk: [5] | Exec: PUSH_M 206 [Reverse SWAP bypass]
+Tick: 0059 | PC: 0002 | Stk: [5, 5] | Exec: PUSH 5
+Tick: 0060 | PC: 0003 | Stk: [] | Exec: CMP 0 || JZ 1 (Superscalar)
+Tick: 0061 | PC: 0005 | Stk: [] | Exec: HALT 0
+--- Simulation Ended ---
+Total Ticks: 61
+Output Buffer: Hello

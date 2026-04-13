@@ -1,0 +1,1717 @@
+=== SOURCE CODE ===
+%define PORT_CHAR_OUT 1
+%define PORT_INT_OUT 2
+%define MAX_NUM 999
+%define MIN_NUM 99
+
+.data
+.org 0x0100
+max_pal:  .word 0
+a:        .word 0
+b:        .word 0
+product:  .word 0
+temp:     .word 0
+reversed: .word 0
+rem:      .word 0
+
+.text
+.org 0x0000
+start:
+    PUSH MAX_NUM
+    POP_M a
+
+loop_a:
+    ; if a == 9 -> print_result
+    PUSH_M a
+    PUSH MIN_NUM
+    CMP
+    PUSH 0     ; инверсия для JZ
+    CMP
+    JZ print_result
+
+    ; b = a (начинаем внутренний цикл от a, чтобы не проверять дубликаты)
+    PUSH_M a
+    POP_M b
+
+loop_b:
+    ; if b == 9 -> next_a
+    PUSH_M b
+    PUSH MIN_NUM
+    CMP
+    PUSH 0     ; инверсия
+    CMP
+    JZ next_a
+
+    ; product = a * b
+    PUSH_M a
+    PUSH_M b
+    MUL
+    POP_M product
+
+    ; if max_pal > product -> next_a
+    ; (т.к. b уменьшается, дальше произведения будут только меньше, смело берем следующее a)
+    PUSH_M max_pal
+    PUSH_M product
+    GT
+    PUSH 0     ; инверсия
+    CMP
+    JZ next_a
+
+    ; --- Проверка на палиндром ---
+    PUSH_M product
+    POP_M temp
+
+    PUSH 0
+    POP_M reversed
+
+reverse_loop:
+    ; if temp == 0 -> check_pal
+    PUSH_M temp
+    PUSH 0
+    CMP
+    PUSH 0     ; инверсия
+    CMP
+    JZ check_pal
+
+    ; rem = temp % 10
+    PUSH_M temp
+    PUSH 10
+    MOD
+    POP_M rem
+
+    ; reversed = reversed * 10 + rem
+    PUSH_M reversed
+    PUSH 10
+    MUL
+    PUSH_M rem
+    ADD
+    POP_M reversed
+
+    ; temp = temp / 10
+    PUSH_M temp
+    PUSH 10
+    DIV
+    POP_M temp
+
+    JMP reverse_loop
+
+check_pal:
+    ; if product == reversed -> update_max
+    PUSH_M product
+    PUSH_M reversed
+    CMP
+    PUSH 0     ; инверсия
+    CMP
+    JZ update_max
+    JMP next_b
+
+update_max:
+    PUSH_M product
+    POP_M max_pal
+
+next_b:
+    ; b = b - 1
+    PUSH_M b
+    PUSH 1
+    SUB
+    POP_M b
+    JMP loop_b
+
+next_a:
+    ; a = a - 1
+    PUSH_M a
+    PUSH 1
+    SUB
+    POP_M a
+    JMP loop_a
+
+print_result:
+    ; Выводим ответ через числовой порт
+    PUSH_M max_pal
+    OUT PORT_INT_OUT
+    HALT
+
+=== MACHINE CODE LOG ===
+0000 - 010003E7 - PUSH MAX_NUM
+0001 - 03000101 - POP_M a
+0002 - 02000101 - PUSH_M a
+0003 - 01000063 - PUSH MIN_NUM
+0004 - 07000000 - CMP 0
+0005 - 01000000 - PUSH 0
+0006 - 07000000 - CMP 0
+0007 - 09000046 - JZ print_result
+0008 - 02000101 - PUSH_M a
+0009 - 03000102 - POP_M b
+000A - 02000102 - PUSH_M b
+000B - 01000063 - PUSH MIN_NUM
+000C - 07000000 - CMP 0
+000D - 01000000 - PUSH 0
+000E - 07000000 - CMP 0
+000F - 09000041 - JZ next_a
+0010 - 02000101 - PUSH_M a
+0011 - 02000102 - PUSH_M b
+0012 - 11000000 - MUL 0
+0013 - 03000103 - POP_M product
+0014 - 02000100 - PUSH_M max_pal
+0015 - 02000103 - PUSH_M product
+0016 - 13000000 - GT 0
+0017 - 01000000 - PUSH 0
+0018 - 07000000 - CMP 0
+0019 - 09000041 - JZ next_a
+001A - 02000103 - PUSH_M product
+001B - 03000104 - POP_M temp
+001C - 01000000 - PUSH 0
+001D - 03000105 - POP_M reversed
+001E - 02000104 - PUSH_M temp
+001F - 01000000 - PUSH 0
+0020 - 07000000 - CMP 0
+0021 - 01000000 - PUSH 0
+0022 - 07000000 - CMP 0
+0023 - 09000033 - JZ check_pal
+0024 - 02000104 - PUSH_M temp
+0025 - 0100000A - PUSH 10
+0026 - 06000000 - MOD 0
+0027 - 03000106 - POP_M rem
+0028 - 02000105 - PUSH_M reversed
+0029 - 0100000A - PUSH 10
+002A - 11000000 - MUL 0
+002B - 02000106 - PUSH_M rem
+002C - 04000000 - ADD 0
+002D - 03000105 - POP_M reversed
+002E - 02000104 - PUSH_M temp
+002F - 0100000A - PUSH 10
+0030 - 12000000 - DIV 0
+0031 - 03000104 - POP_M temp
+0032 - 0800001E - JMP reverse_loop
+0033 - 02000103 - PUSH_M product
+0034 - 02000105 - PUSH_M reversed
+0035 - 07000000 - CMP 0
+0036 - 01000000 - PUSH 0
+0037 - 07000000 - CMP 0
+0038 - 0900003A - JZ update_max
+0039 - 0800003C - JMP next_b
+003A - 02000103 - PUSH_M product
+003B - 03000100 - POP_M max_pal
+003C - 02000102 - PUSH_M b
+003D - 01000001 - PUSH 1
+003E - 05000000 - SUB 0
+003F - 03000102 - POP_M b
+0040 - 0800000A - JMP loop_b
+0041 - 02000101 - PUSH_M a
+0042 - 01000001 - PUSH 1
+0043 - 05000000 - SUB 0
+0044 - 03000101 - POP_M a
+0045 - 08000002 - JMP loop_a
+0046 - 02000100 - PUSH_M max_pal
+0047 - 0D000002 - OUT PORT_INT_OUT
+0048 - 0F000000 - HALT 0
+
+=== EXECUTION LOG ===
+--- Simulation Started ---
+Tick: 0001 | PC: 0000 | Stk: [] | Exec: PUSH 999 || POP_M 257 (Superscalar)
+Tick: 0002 | PC: 0002 | Stk: [999] | Exec: PUSH_M 257 [Reverse SWAP bypass]
+Tick: 0003 | PC: 0003 | Stk: [999, 99] | Exec: PUSH 99 [MemWrite: 257 <- 999]
+Tick: 0004 | PC: 0004 | Stk: [0] | Exec: CMP 0
+Tick: 0005 | PC: 0005 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0006 | PC: 0006 | Stk: [] | Exec: CMP 0 || JZ 70 (Superscalar)
+Tick: 0007 | PC: 0008 | Stk: [999] | Exec: PUSH_M 257 [Reverse SWAP bypass]
+Tick: 0008 | PC: 0009 | Stk: [] | Exec: POP_M 258
+Tick: 0009 | PC: 000A | Stk: [999] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 0010 | PC: 000B | Stk: [999, 99] | Exec: PUSH 99 [MemWrite: 258 <- 999]
+Tick: 0011 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 0012 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0013 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0014 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 0015 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 0016 | PC: 0011 | Stk: [999, 999] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 0017 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 0018 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0019 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 998001]
+Tick: 0020 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 0021 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 0022 | PC: 0015 | Stk: [0, 998001] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0023 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 0024 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0025 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0026 | PC: 001A | Stk: [998001] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0027 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 0028 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 0029 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 998001]
+Tick: 0030 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0031 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 0032 | PC: 001E | Stk: [998001] | Exec: PUSH_M 260
+Tick: 0033 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 0034 | PC: 001F | Stk: [998001, 0] | Exec: PUSH 0
+Tick: 0035 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0036 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0037 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0038 | PC: 0024 | Stk: [998001] | Exec: PUSH_M 260
+Tick: 0039 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 0040 | PC: 0025 | Stk: [998001, 10] | Exec: PUSH 10
+Tick: 0041 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0042 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0043 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 1]
+Tick: 0044 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 0045 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0046 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 0047 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 0048 | PC: 002B | Stk: [0, 1] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0049 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0050 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0051 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 1]
+Tick: 0052 | PC: 002E | Stk: [998001] | Exec: PUSH_M 260
+Tick: 0053 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0054 | PC: 002F | Stk: [998001, 10] | Exec: PUSH 10
+Tick: 0055 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0056 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0057 | PC: 001E | Stk: [99800] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99800]
+Tick: 0058 | PC: 001F | Stk: [99800, 0] | Exec: PUSH 0
+Tick: 0059 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0060 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0061 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0062 | PC: 0024 | Stk: [99800] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0063 | PC: 0025 | Stk: [99800, 10] | Exec: PUSH 10
+Tick: 0064 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0065 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0066 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0067 | PC: 0028 | Stk: [1] | Exec: PUSH_M 261
+Tick: 0068 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0069 | PC: 0029 | Stk: [1, 10] | Exec: PUSH 10
+Tick: 0070 | PC: 002A | Stk: [10] | Exec: MUL 0
+Tick: 0071 | PC: 002B | Stk: [10, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0072 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0073 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0074 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 10]
+Tick: 0075 | PC: 002E | Stk: [99800] | Exec: PUSH_M 260
+Tick: 0076 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0077 | PC: 002F | Stk: [99800, 10] | Exec: PUSH 10
+Tick: 0078 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0079 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0080 | PC: 001E | Stk: [9980] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9980]
+Tick: 0081 | PC: 001F | Stk: [9980, 0] | Exec: PUSH 0
+Tick: 0082 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0083 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0084 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0085 | PC: 0024 | Stk: [9980] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0086 | PC: 0025 | Stk: [9980, 10] | Exec: PUSH 10
+Tick: 0087 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0088 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0089 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0090 | PC: 0028 | Stk: [10] | Exec: PUSH_M 261
+Tick: 0091 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0092 | PC: 0029 | Stk: [10, 10] | Exec: PUSH 10
+Tick: 0093 | PC: 002A | Stk: [100] | Exec: MUL 0
+Tick: 0094 | PC: 002B | Stk: [100, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0095 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0096 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0097 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 100]
+Tick: 0098 | PC: 002E | Stk: [9980] | Exec: PUSH_M 260
+Tick: 0099 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0100 | PC: 002F | Stk: [9980, 10] | Exec: PUSH 10
+Tick: 0101 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0102 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0103 | PC: 001E | Stk: [998] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 998]
+Tick: 0104 | PC: 001F | Stk: [998, 0] | Exec: PUSH 0
+Tick: 0105 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0106 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0107 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0108 | PC: 0024 | Stk: [998] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0109 | PC: 0025 | Stk: [998, 10] | Exec: PUSH 10
+Tick: 0110 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0111 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0112 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 8]
+Tick: 0113 | PC: 0028 | Stk: [100] | Exec: PUSH_M 261
+Tick: 0114 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0115 | PC: 0029 | Stk: [100, 10] | Exec: PUSH 10
+Tick: 0116 | PC: 002A | Stk: [1000] | Exec: MUL 0
+Tick: 0117 | PC: 002B | Stk: [1000, 8] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0118 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0119 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0120 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 1008]
+Tick: 0121 | PC: 002E | Stk: [998] | Exec: PUSH_M 260
+Tick: 0122 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0123 | PC: 002F | Stk: [998, 10] | Exec: PUSH 10
+Tick: 0124 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0125 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0126 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 0127 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 0128 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0129 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0130 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0131 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0132 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0133 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0134 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0135 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0136 | PC: 0028 | Stk: [1008] | Exec: PUSH_M 261
+Tick: 0137 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0138 | PC: 0029 | Stk: [1008, 10] | Exec: PUSH 10
+Tick: 0139 | PC: 002A | Stk: [10080] | Exec: MUL 0
+Tick: 0140 | PC: 002B | Stk: [10080, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0141 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0142 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0143 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 10089]
+Tick: 0144 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 0145 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0146 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0147 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0148 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0149 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 0150 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 0151 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0152 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0153 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0154 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0155 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0156 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0157 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0158 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0159 | PC: 0028 | Stk: [10089] | Exec: PUSH_M 261
+Tick: 0160 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0161 | PC: 0029 | Stk: [10089, 10] | Exec: PUSH 10
+Tick: 0162 | PC: 002A | Stk: [100890] | Exec: MUL 0
+Tick: 0163 | PC: 002B | Stk: [100890, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0164 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0165 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0166 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 100899]
+Tick: 0167 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 0168 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0169 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0170 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0171 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0172 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 0173 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0174 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 0175 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 0176 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0177 | PC: 0033 | Stk: [998001] | Exec: PUSH_M 259
+Tick: 0178 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 0179 | PC: 0034 | Stk: [998001, 100899] | Exec: PUSH_M 261
+Tick: 0180 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 0181 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 0182 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0183 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 0184 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 0185 | PC: 003C | Stk: [999] | Exec: PUSH_M 258
+Tick: 0186 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 0187 | PC: 003D | Stk: [999, 1] | Exec: PUSH 1
+Tick: 0188 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 0189 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 0190 | PC: 000A | Stk: [998] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 998]
+Tick: 0191 | PC: 000B | Stk: [998, 99] | Exec: PUSH 99
+Tick: 0192 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 0193 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0194 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0195 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 0196 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 0197 | PC: 0011 | Stk: [999, 998] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 0198 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 0199 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0200 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 997002]
+Tick: 0201 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 0202 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 0203 | PC: 0015 | Stk: [0, 997002] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0204 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 0205 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0206 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0207 | PC: 001A | Stk: [997002] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0208 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 0209 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 0210 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 997002]
+Tick: 0211 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0212 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 0213 | PC: 001E | Stk: [997002] | Exec: PUSH_M 260
+Tick: 0214 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 0215 | PC: 001F | Stk: [997002, 0] | Exec: PUSH 0
+Tick: 0216 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0217 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0218 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0219 | PC: 0024 | Stk: [997002] | Exec: PUSH_M 260
+Tick: 0220 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 0221 | PC: 0025 | Stk: [997002, 10] | Exec: PUSH 10
+Tick: 0222 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0223 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0224 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 2]
+Tick: 0225 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 0226 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0227 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 0228 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 0229 | PC: 002B | Stk: [0, 2] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0230 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0231 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0232 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 2]
+Tick: 0233 | PC: 002E | Stk: [997002] | Exec: PUSH_M 260
+Tick: 0234 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0235 | PC: 002F | Stk: [997002, 10] | Exec: PUSH 10
+Tick: 0236 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0237 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0238 | PC: 001E | Stk: [99700] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99700]
+Tick: 0239 | PC: 001F | Stk: [99700, 0] | Exec: PUSH 0
+Tick: 0240 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0241 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0242 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0243 | PC: 0024 | Stk: [99700] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0244 | PC: 0025 | Stk: [99700, 10] | Exec: PUSH 10
+Tick: 0245 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0246 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0247 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0248 | PC: 0028 | Stk: [2] | Exec: PUSH_M 261
+Tick: 0249 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0250 | PC: 0029 | Stk: [2, 10] | Exec: PUSH 10
+Tick: 0251 | PC: 002A | Stk: [20] | Exec: MUL 0
+Tick: 0252 | PC: 002B | Stk: [20, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0253 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0254 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0255 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 20]
+Tick: 0256 | PC: 002E | Stk: [99700] | Exec: PUSH_M 260
+Tick: 0257 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0258 | PC: 002F | Stk: [99700, 10] | Exec: PUSH 10
+Tick: 0259 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0260 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0261 | PC: 001E | Stk: [9970] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9970]
+Tick: 0262 | PC: 001F | Stk: [9970, 0] | Exec: PUSH 0
+Tick: 0263 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0264 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0265 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0266 | PC: 0024 | Stk: [9970] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0267 | PC: 0025 | Stk: [9970, 10] | Exec: PUSH 10
+Tick: 0268 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0269 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0270 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0271 | PC: 0028 | Stk: [20] | Exec: PUSH_M 261
+Tick: 0272 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0273 | PC: 0029 | Stk: [20, 10] | Exec: PUSH 10
+Tick: 0274 | PC: 002A | Stk: [200] | Exec: MUL 0
+Tick: 0275 | PC: 002B | Stk: [200, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0276 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0277 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0278 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 200]
+Tick: 0279 | PC: 002E | Stk: [9970] | Exec: PUSH_M 260
+Tick: 0280 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0281 | PC: 002F | Stk: [9970, 10] | Exec: PUSH 10
+Tick: 0282 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0283 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0284 | PC: 001E | Stk: [997] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 997]
+Tick: 0285 | PC: 001F | Stk: [997, 0] | Exec: PUSH 0
+Tick: 0286 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0287 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0288 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0289 | PC: 0024 | Stk: [997] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0290 | PC: 0025 | Stk: [997, 10] | Exec: PUSH 10
+Tick: 0291 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0292 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0293 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 7]
+Tick: 0294 | PC: 0028 | Stk: [200] | Exec: PUSH_M 261
+Tick: 0295 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0296 | PC: 0029 | Stk: [200, 10] | Exec: PUSH 10
+Tick: 0297 | PC: 002A | Stk: [2000] | Exec: MUL 0
+Tick: 0298 | PC: 002B | Stk: [2000, 7] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0299 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0300 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0301 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 2007]
+Tick: 0302 | PC: 002E | Stk: [997] | Exec: PUSH_M 260
+Tick: 0303 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0304 | PC: 002F | Stk: [997, 10] | Exec: PUSH 10
+Tick: 0305 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0306 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0307 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 0308 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 0309 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0310 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0311 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0312 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0313 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0314 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0315 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0316 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0317 | PC: 0028 | Stk: [2007] | Exec: PUSH_M 261
+Tick: 0318 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0319 | PC: 0029 | Stk: [2007, 10] | Exec: PUSH 10
+Tick: 0320 | PC: 002A | Stk: [20070] | Exec: MUL 0
+Tick: 0321 | PC: 002B | Stk: [20070, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0322 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0323 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0324 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 20079]
+Tick: 0325 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 0326 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0327 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0328 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0329 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0330 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 0331 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 0332 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0333 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0334 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0335 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0336 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0337 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0338 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0339 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0340 | PC: 0028 | Stk: [20079] | Exec: PUSH_M 261
+Tick: 0341 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0342 | PC: 0029 | Stk: [20079, 10] | Exec: PUSH 10
+Tick: 0343 | PC: 002A | Stk: [200790] | Exec: MUL 0
+Tick: 0344 | PC: 002B | Stk: [200790, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0345 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0346 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0347 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 200799]
+Tick: 0348 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 0349 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0350 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0351 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0352 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0353 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 0354 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0355 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 0356 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 0357 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0358 | PC: 0033 | Stk: [997002] | Exec: PUSH_M 259
+Tick: 0359 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 0360 | PC: 0034 | Stk: [997002, 200799] | Exec: PUSH_M 261
+Tick: 0361 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 0362 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 0363 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0364 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 0365 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 0366 | PC: 003C | Stk: [998] | Exec: PUSH_M 258
+Tick: 0367 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 0368 | PC: 003D | Stk: [998, 1] | Exec: PUSH 1
+Tick: 0369 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 0370 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 0371 | PC: 000A | Stk: [997] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 997]
+Tick: 0372 | PC: 000B | Stk: [997, 99] | Exec: PUSH 99
+Tick: 0373 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 0374 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0375 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0376 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 0377 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 0378 | PC: 0011 | Stk: [999, 997] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 0379 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 0380 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0381 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 996003]
+Tick: 0382 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 0383 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 0384 | PC: 0015 | Stk: [0, 996003] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0385 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 0386 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0387 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0388 | PC: 001A | Stk: [996003] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0389 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 0390 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 0391 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 996003]
+Tick: 0392 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0393 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 0394 | PC: 001E | Stk: [996003] | Exec: PUSH_M 260
+Tick: 0395 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 0396 | PC: 001F | Stk: [996003, 0] | Exec: PUSH 0
+Tick: 0397 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0398 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0399 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0400 | PC: 0024 | Stk: [996003] | Exec: PUSH_M 260
+Tick: 0401 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 0402 | PC: 0025 | Stk: [996003, 10] | Exec: PUSH 10
+Tick: 0403 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0404 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0405 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 3]
+Tick: 0406 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 0407 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0408 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 0409 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 0410 | PC: 002B | Stk: [0, 3] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0411 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0412 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0413 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 3]
+Tick: 0414 | PC: 002E | Stk: [996003] | Exec: PUSH_M 260
+Tick: 0415 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0416 | PC: 002F | Stk: [996003, 10] | Exec: PUSH 10
+Tick: 0417 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0418 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0419 | PC: 001E | Stk: [99600] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99600]
+Tick: 0420 | PC: 001F | Stk: [99600, 0] | Exec: PUSH 0
+Tick: 0421 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0422 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0423 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0424 | PC: 0024 | Stk: [99600] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0425 | PC: 0025 | Stk: [99600, 10] | Exec: PUSH 10
+Tick: 0426 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0427 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0428 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0429 | PC: 0028 | Stk: [3] | Exec: PUSH_M 261
+Tick: 0430 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0431 | PC: 0029 | Stk: [3, 10] | Exec: PUSH 10
+Tick: 0432 | PC: 002A | Stk: [30] | Exec: MUL 0
+Tick: 0433 | PC: 002B | Stk: [30, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0434 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0435 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0436 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 30]
+Tick: 0437 | PC: 002E | Stk: [99600] | Exec: PUSH_M 260
+Tick: 0438 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0439 | PC: 002F | Stk: [99600, 10] | Exec: PUSH 10
+Tick: 0440 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0441 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0442 | PC: 001E | Stk: [9960] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9960]
+Tick: 0443 | PC: 001F | Stk: [9960, 0] | Exec: PUSH 0
+Tick: 0444 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0445 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0446 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0447 | PC: 0024 | Stk: [9960] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0448 | PC: 0025 | Stk: [9960, 10] | Exec: PUSH 10
+Tick: 0449 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0450 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0451 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0452 | PC: 0028 | Stk: [30] | Exec: PUSH_M 261
+Tick: 0453 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0454 | PC: 0029 | Stk: [30, 10] | Exec: PUSH 10
+Tick: 0455 | PC: 002A | Stk: [300] | Exec: MUL 0
+Tick: 0456 | PC: 002B | Stk: [300, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0457 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0458 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0459 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 300]
+Tick: 0460 | PC: 002E | Stk: [9960] | Exec: PUSH_M 260
+Tick: 0461 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0462 | PC: 002F | Stk: [9960, 10] | Exec: PUSH 10
+Tick: 0463 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0464 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0465 | PC: 001E | Stk: [996] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 996]
+Tick: 0466 | PC: 001F | Stk: [996, 0] | Exec: PUSH 0
+Tick: 0467 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0468 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0469 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0470 | PC: 0024 | Stk: [996] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0471 | PC: 0025 | Stk: [996, 10] | Exec: PUSH 10
+Tick: 0472 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0473 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0474 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 6]
+Tick: 0475 | PC: 0028 | Stk: [300] | Exec: PUSH_M 261
+Tick: 0476 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0477 | PC: 0029 | Stk: [300, 10] | Exec: PUSH 10
+Tick: 0478 | PC: 002A | Stk: [3000] | Exec: MUL 0
+Tick: 0479 | PC: 002B | Stk: [3000, 6] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0480 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0481 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0482 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 3006]
+Tick: 0483 | PC: 002E | Stk: [996] | Exec: PUSH_M 260
+Tick: 0484 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0485 | PC: 002F | Stk: [996, 10] | Exec: PUSH 10
+Tick: 0486 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0487 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0488 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 0489 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 0490 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0491 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0492 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0493 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0494 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0495 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0496 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0497 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0498 | PC: 0028 | Stk: [3006] | Exec: PUSH_M 261
+Tick: 0499 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0500 | PC: 0029 | Stk: [3006, 10] | Exec: PUSH 10
+Tick: 0501 | PC: 002A | Stk: [30060] | Exec: MUL 0
+Tick: 0502 | PC: 002B | Stk: [30060, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0503 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0504 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0505 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 30069]
+Tick: 0506 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 0507 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0508 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0509 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0510 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0511 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 0512 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 0513 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0514 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0515 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0516 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0517 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0518 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0519 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0520 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0521 | PC: 0028 | Stk: [30069] | Exec: PUSH_M 261
+Tick: 0522 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0523 | PC: 0029 | Stk: [30069, 10] | Exec: PUSH 10
+Tick: 0524 | PC: 002A | Stk: [300690] | Exec: MUL 0
+Tick: 0525 | PC: 002B | Stk: [300690, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0526 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0527 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0528 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 300699]
+Tick: 0529 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 0530 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0531 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0532 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0533 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0534 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 0535 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0536 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 0537 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 0538 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0539 | PC: 0033 | Stk: [996003] | Exec: PUSH_M 259
+Tick: 0540 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 0541 | PC: 0034 | Stk: [996003, 300699] | Exec: PUSH_M 261
+Tick: 0542 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 0543 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 0544 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0545 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 0546 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 0547 | PC: 003C | Stk: [997] | Exec: PUSH_M 258
+Tick: 0548 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 0549 | PC: 003D | Stk: [997, 1] | Exec: PUSH 1
+Tick: 0550 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 0551 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 0552 | PC: 000A | Stk: [996] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 996]
+Tick: 0553 | PC: 000B | Stk: [996, 99] | Exec: PUSH 99
+Tick: 0554 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 0555 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0556 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0557 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 0558 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 0559 | PC: 0011 | Stk: [999, 996] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 0560 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 0561 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0562 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 995004]
+Tick: 0563 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 0564 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 0565 | PC: 0015 | Stk: [0, 995004] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0566 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 0567 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0568 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0569 | PC: 001A | Stk: [995004] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0570 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 0571 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 0572 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 995004]
+Tick: 0573 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0574 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 0575 | PC: 001E | Stk: [995004] | Exec: PUSH_M 260
+Tick: 0576 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 0577 | PC: 001F | Stk: [995004, 0] | Exec: PUSH 0
+Tick: 0578 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0579 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0580 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0581 | PC: 0024 | Stk: [995004] | Exec: PUSH_M 260
+Tick: 0582 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 0583 | PC: 0025 | Stk: [995004, 10] | Exec: PUSH 10
+Tick: 0584 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0585 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0586 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 4]
+Tick: 0587 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 0588 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0589 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 0590 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 0591 | PC: 002B | Stk: [0, 4] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0592 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0593 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0594 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 4]
+Tick: 0595 | PC: 002E | Stk: [995004] | Exec: PUSH_M 260
+Tick: 0596 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0597 | PC: 002F | Stk: [995004, 10] | Exec: PUSH 10
+Tick: 0598 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0599 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0600 | PC: 001E | Stk: [99500] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99500]
+Tick: 0601 | PC: 001F | Stk: [99500, 0] | Exec: PUSH 0
+Tick: 0602 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0603 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0604 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0605 | PC: 0024 | Stk: [99500] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0606 | PC: 0025 | Stk: [99500, 10] | Exec: PUSH 10
+Tick: 0607 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0608 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0609 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0610 | PC: 0028 | Stk: [4] | Exec: PUSH_M 261
+Tick: 0611 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0612 | PC: 0029 | Stk: [4, 10] | Exec: PUSH 10
+Tick: 0613 | PC: 002A | Stk: [40] | Exec: MUL 0
+Tick: 0614 | PC: 002B | Stk: [40, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0615 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0616 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0617 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 40]
+Tick: 0618 | PC: 002E | Stk: [99500] | Exec: PUSH_M 260
+Tick: 0619 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0620 | PC: 002F | Stk: [99500, 10] | Exec: PUSH 10
+Tick: 0621 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0622 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0623 | PC: 001E | Stk: [9950] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9950]
+Tick: 0624 | PC: 001F | Stk: [9950, 0] | Exec: PUSH 0
+Tick: 0625 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0626 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0627 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0628 | PC: 0024 | Stk: [9950] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0629 | PC: 0025 | Stk: [9950, 10] | Exec: PUSH 10
+Tick: 0630 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0631 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0632 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0633 | PC: 0028 | Stk: [40] | Exec: PUSH_M 261
+Tick: 0634 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0635 | PC: 0029 | Stk: [40, 10] | Exec: PUSH 10
+Tick: 0636 | PC: 002A | Stk: [400] | Exec: MUL 0
+Tick: 0637 | PC: 002B | Stk: [400, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0638 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0639 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0640 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 400]
+Tick: 0641 | PC: 002E | Stk: [9950] | Exec: PUSH_M 260
+Tick: 0642 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0643 | PC: 002F | Stk: [9950, 10] | Exec: PUSH 10
+Tick: 0644 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0645 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0646 | PC: 001E | Stk: [995] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 995]
+Tick: 0647 | PC: 001F | Stk: [995, 0] | Exec: PUSH 0
+Tick: 0648 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0649 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0650 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0651 | PC: 0024 | Stk: [995] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0652 | PC: 0025 | Stk: [995, 10] | Exec: PUSH 10
+Tick: 0653 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0654 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0655 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 5]
+Tick: 0656 | PC: 0028 | Stk: [400] | Exec: PUSH_M 261
+Tick: 0657 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0658 | PC: 0029 | Stk: [400, 10] | Exec: PUSH 10
+Tick: 0659 | PC: 002A | Stk: [4000] | Exec: MUL 0
+Tick: 0660 | PC: 002B | Stk: [4000, 5] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0661 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0662 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0663 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 4005]
+Tick: 0664 | PC: 002E | Stk: [995] | Exec: PUSH_M 260
+Tick: 0665 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0666 | PC: 002F | Stk: [995, 10] | Exec: PUSH 10
+Tick: 0667 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0668 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0669 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 0670 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 0671 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0672 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0673 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0674 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0675 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0676 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0677 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0678 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0679 | PC: 0028 | Stk: [4005] | Exec: PUSH_M 261
+Tick: 0680 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0681 | PC: 0029 | Stk: [4005, 10] | Exec: PUSH 10
+Tick: 0682 | PC: 002A | Stk: [40050] | Exec: MUL 0
+Tick: 0683 | PC: 002B | Stk: [40050, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0684 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0685 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0686 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 40059]
+Tick: 0687 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 0688 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0689 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0690 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0691 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0692 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 0693 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 0694 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0695 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0696 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0697 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0698 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0699 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0700 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0701 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0702 | PC: 0028 | Stk: [40059] | Exec: PUSH_M 261
+Tick: 0703 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0704 | PC: 0029 | Stk: [40059, 10] | Exec: PUSH 10
+Tick: 0705 | PC: 002A | Stk: [400590] | Exec: MUL 0
+Tick: 0706 | PC: 002B | Stk: [400590, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0707 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0708 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0709 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 400599]
+Tick: 0710 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 0711 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0712 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0713 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0714 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0715 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 0716 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0717 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 0718 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 0719 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0720 | PC: 0033 | Stk: [995004] | Exec: PUSH_M 259
+Tick: 0721 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 0722 | PC: 0034 | Stk: [995004, 400599] | Exec: PUSH_M 261
+Tick: 0723 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 0724 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 0725 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0726 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 0727 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 0728 | PC: 003C | Stk: [996] | Exec: PUSH_M 258
+Tick: 0729 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 0730 | PC: 003D | Stk: [996, 1] | Exec: PUSH 1
+Tick: 0731 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 0732 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 0733 | PC: 000A | Stk: [995] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 995]
+Tick: 0734 | PC: 000B | Stk: [995, 99] | Exec: PUSH 99
+Tick: 0735 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 0736 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0737 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0738 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 0739 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 0740 | PC: 0011 | Stk: [999, 995] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 0741 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 0742 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0743 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 994005]
+Tick: 0744 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 0745 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 0746 | PC: 0015 | Stk: [0, 994005] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0747 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 0748 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0749 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0750 | PC: 001A | Stk: [994005] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0751 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 0752 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 0753 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 994005]
+Tick: 0754 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0755 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 0756 | PC: 001E | Stk: [994005] | Exec: PUSH_M 260
+Tick: 0757 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 0758 | PC: 001F | Stk: [994005, 0] | Exec: PUSH 0
+Tick: 0759 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0760 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0761 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0762 | PC: 0024 | Stk: [994005] | Exec: PUSH_M 260
+Tick: 0763 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 0764 | PC: 0025 | Stk: [994005, 10] | Exec: PUSH 10
+Tick: 0765 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0766 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0767 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 5]
+Tick: 0768 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 0769 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0770 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 0771 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 0772 | PC: 002B | Stk: [0, 5] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0773 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0774 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0775 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 5]
+Tick: 0776 | PC: 002E | Stk: [994005] | Exec: PUSH_M 260
+Tick: 0777 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0778 | PC: 002F | Stk: [994005, 10] | Exec: PUSH 10
+Tick: 0779 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0780 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0781 | PC: 001E | Stk: [99400] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99400]
+Tick: 0782 | PC: 001F | Stk: [99400, 0] | Exec: PUSH 0
+Tick: 0783 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0784 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0785 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0786 | PC: 0024 | Stk: [99400] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0787 | PC: 0025 | Stk: [99400, 10] | Exec: PUSH 10
+Tick: 0788 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0789 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0790 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0791 | PC: 0028 | Stk: [5] | Exec: PUSH_M 261
+Tick: 0792 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0793 | PC: 0029 | Stk: [5, 10] | Exec: PUSH 10
+Tick: 0794 | PC: 002A | Stk: [50] | Exec: MUL 0
+Tick: 0795 | PC: 002B | Stk: [50, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0796 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0797 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0798 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 50]
+Tick: 0799 | PC: 002E | Stk: [99400] | Exec: PUSH_M 260
+Tick: 0800 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0801 | PC: 002F | Stk: [99400, 10] | Exec: PUSH 10
+Tick: 0802 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0803 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0804 | PC: 001E | Stk: [9940] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9940]
+Tick: 0805 | PC: 001F | Stk: [9940, 0] | Exec: PUSH 0
+Tick: 0806 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0807 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0808 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0809 | PC: 0024 | Stk: [9940] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0810 | PC: 0025 | Stk: [9940, 10] | Exec: PUSH 10
+Tick: 0811 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0812 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0813 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0814 | PC: 0028 | Stk: [50] | Exec: PUSH_M 261
+Tick: 0815 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0816 | PC: 0029 | Stk: [50, 10] | Exec: PUSH 10
+Tick: 0817 | PC: 002A | Stk: [500] | Exec: MUL 0
+Tick: 0818 | PC: 002B | Stk: [500, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0819 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0820 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0821 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 500]
+Tick: 0822 | PC: 002E | Stk: [9940] | Exec: PUSH_M 260
+Tick: 0823 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0824 | PC: 002F | Stk: [9940, 10] | Exec: PUSH 10
+Tick: 0825 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0826 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0827 | PC: 001E | Stk: [994] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 994]
+Tick: 0828 | PC: 001F | Stk: [994, 0] | Exec: PUSH 0
+Tick: 0829 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0830 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0831 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0832 | PC: 0024 | Stk: [994] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0833 | PC: 0025 | Stk: [994, 10] | Exec: PUSH 10
+Tick: 0834 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0835 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0836 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 4]
+Tick: 0837 | PC: 0028 | Stk: [500] | Exec: PUSH_M 261
+Tick: 0838 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0839 | PC: 0029 | Stk: [500, 10] | Exec: PUSH 10
+Tick: 0840 | PC: 002A | Stk: [5000] | Exec: MUL 0
+Tick: 0841 | PC: 002B | Stk: [5000, 4] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0842 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0843 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0844 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 5004]
+Tick: 0845 | PC: 002E | Stk: [994] | Exec: PUSH_M 260
+Tick: 0846 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0847 | PC: 002F | Stk: [994, 10] | Exec: PUSH 10
+Tick: 0848 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0849 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0850 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 0851 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 0852 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0853 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0854 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0855 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0856 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0857 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0858 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0859 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0860 | PC: 0028 | Stk: [5004] | Exec: PUSH_M 261
+Tick: 0861 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0862 | PC: 0029 | Stk: [5004, 10] | Exec: PUSH 10
+Tick: 0863 | PC: 002A | Stk: [50040] | Exec: MUL 0
+Tick: 0864 | PC: 002B | Stk: [50040, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0865 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0866 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0867 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 50049]
+Tick: 0868 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 0869 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0870 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 0871 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0872 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0873 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 0874 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 0875 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0876 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0877 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0878 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0879 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0880 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0881 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0882 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 0883 | PC: 0028 | Stk: [50049] | Exec: PUSH_M 261
+Tick: 0884 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0885 | PC: 0029 | Stk: [50049, 10] | Exec: PUSH 10
+Tick: 0886 | PC: 002A | Stk: [500490] | Exec: MUL 0
+Tick: 0887 | PC: 002B | Stk: [500490, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0888 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0889 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0890 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 500499]
+Tick: 0891 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 0892 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0893 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 0894 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0895 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0896 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 0897 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0898 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 0899 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 0900 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0901 | PC: 0033 | Stk: [994005] | Exec: PUSH_M 259
+Tick: 0902 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 0903 | PC: 0034 | Stk: [994005, 500499] | Exec: PUSH_M 261
+Tick: 0904 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 0905 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 0906 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0907 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 0908 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 0909 | PC: 003C | Stk: [995] | Exec: PUSH_M 258
+Tick: 0910 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 0911 | PC: 003D | Stk: [995, 1] | Exec: PUSH 1
+Tick: 0912 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 0913 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 0914 | PC: 000A | Stk: [994] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 994]
+Tick: 0915 | PC: 000B | Stk: [994, 99] | Exec: PUSH 99
+Tick: 0916 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 0917 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0918 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0919 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 0920 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 0921 | PC: 0011 | Stk: [999, 994] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 0922 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 0923 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0924 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 993006]
+Tick: 0925 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 0926 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 0927 | PC: 0015 | Stk: [0, 993006] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0928 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 0929 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0930 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 0931 | PC: 001A | Stk: [993006] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 0932 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 0933 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 0934 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 993006]
+Tick: 0935 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0936 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 0937 | PC: 001E | Stk: [993006] | Exec: PUSH_M 260
+Tick: 0938 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 0939 | PC: 001F | Stk: [993006, 0] | Exec: PUSH 0
+Tick: 0940 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0941 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0942 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0943 | PC: 0024 | Stk: [993006] | Exec: PUSH_M 260
+Tick: 0944 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 0945 | PC: 0025 | Stk: [993006, 10] | Exec: PUSH 10
+Tick: 0946 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0947 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0948 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 6]
+Tick: 0949 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 0950 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0951 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 0952 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 0953 | PC: 002B | Stk: [0, 6] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0954 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0955 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0956 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 6]
+Tick: 0957 | PC: 002E | Stk: [993006] | Exec: PUSH_M 260
+Tick: 0958 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0959 | PC: 002F | Stk: [993006, 10] | Exec: PUSH 10
+Tick: 0960 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0961 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0962 | PC: 001E | Stk: [99300] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99300]
+Tick: 0963 | PC: 001F | Stk: [99300, 0] | Exec: PUSH 0
+Tick: 0964 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0965 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0966 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0967 | PC: 0024 | Stk: [99300] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0968 | PC: 0025 | Stk: [99300, 10] | Exec: PUSH 10
+Tick: 0969 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0970 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0971 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0972 | PC: 0028 | Stk: [6] | Exec: PUSH_M 261
+Tick: 0973 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0974 | PC: 0029 | Stk: [6, 10] | Exec: PUSH 10
+Tick: 0975 | PC: 002A | Stk: [60] | Exec: MUL 0
+Tick: 0976 | PC: 002B | Stk: [60, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 0977 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 0978 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 0979 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 60]
+Tick: 0980 | PC: 002E | Stk: [99300] | Exec: PUSH_M 260
+Tick: 0981 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 0982 | PC: 002F | Stk: [99300, 10] | Exec: PUSH 10
+Tick: 0983 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 0984 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 0985 | PC: 001E | Stk: [9930] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9930]
+Tick: 0986 | PC: 001F | Stk: [9930, 0] | Exec: PUSH 0
+Tick: 0987 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 0988 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 0989 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 0990 | PC: 0024 | Stk: [9930] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 0991 | PC: 0025 | Stk: [9930, 10] | Exec: PUSH 10
+Tick: 0992 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 0993 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 0994 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 0995 | PC: 0028 | Stk: [60] | Exec: PUSH_M 261
+Tick: 0996 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 0997 | PC: 0029 | Stk: [60, 10] | Exec: PUSH 10
+Tick: 0998 | PC: 002A | Stk: [600] | Exec: MUL 0
+Tick: 0999 | PC: 002B | Stk: [600, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1000 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1001 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1002 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 600]
+Tick: 1003 | PC: 002E | Stk: [9930] | Exec: PUSH_M 260
+Tick: 1004 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1005 | PC: 002F | Stk: [9930, 10] | Exec: PUSH 10
+Tick: 1006 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1007 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1008 | PC: 001E | Stk: [993] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 993]
+Tick: 1009 | PC: 001F | Stk: [993, 0] | Exec: PUSH 0
+Tick: 1010 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1011 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1012 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1013 | PC: 0024 | Stk: [993] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1014 | PC: 0025 | Stk: [993, 10] | Exec: PUSH 10
+Tick: 1015 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1016 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1017 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 3]
+Tick: 1018 | PC: 0028 | Stk: [600] | Exec: PUSH_M 261
+Tick: 1019 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1020 | PC: 0029 | Stk: [600, 10] | Exec: PUSH 10
+Tick: 1021 | PC: 002A | Stk: [6000] | Exec: MUL 0
+Tick: 1022 | PC: 002B | Stk: [6000, 3] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1023 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1024 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1025 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 6003]
+Tick: 1026 | PC: 002E | Stk: [993] | Exec: PUSH_M 260
+Tick: 1027 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1028 | PC: 002F | Stk: [993, 10] | Exec: PUSH 10
+Tick: 1029 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1030 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1031 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 1032 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 1033 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1034 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1035 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1036 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1037 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 1038 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1039 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1040 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 1041 | PC: 0028 | Stk: [6003] | Exec: PUSH_M 261
+Tick: 1042 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1043 | PC: 0029 | Stk: [6003, 10] | Exec: PUSH 10
+Tick: 1044 | PC: 002A | Stk: [60030] | Exec: MUL 0
+Tick: 1045 | PC: 002B | Stk: [60030, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1046 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1047 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1048 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 60039]
+Tick: 1049 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 1050 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1051 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 1052 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1053 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1054 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 1055 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 1056 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1057 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1058 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1059 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1060 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 1061 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1062 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1063 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 1064 | PC: 0028 | Stk: [60039] | Exec: PUSH_M 261
+Tick: 1065 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1066 | PC: 0029 | Stk: [60039, 10] | Exec: PUSH 10
+Tick: 1067 | PC: 002A | Stk: [600390] | Exec: MUL 0
+Tick: 1068 | PC: 002B | Stk: [600390, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1069 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1070 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1071 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 600399]
+Tick: 1072 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 1073 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1074 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 1075 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1076 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1077 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 1078 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1079 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 1080 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 1081 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1082 | PC: 0033 | Stk: [993006] | Exec: PUSH_M 259
+Tick: 1083 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 1084 | PC: 0034 | Stk: [993006, 600399] | Exec: PUSH_M 261
+Tick: 1085 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 1086 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 1087 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1088 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 1089 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 1090 | PC: 003C | Stk: [994] | Exec: PUSH_M 258
+Tick: 1091 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 1092 | PC: 003D | Stk: [994, 1] | Exec: PUSH 1
+Tick: 1093 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 1094 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 1095 | PC: 000A | Stk: [993] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 993]
+Tick: 1096 | PC: 000B | Stk: [993, 99] | Exec: PUSH 99
+Tick: 1097 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 1098 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1099 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 1100 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 1101 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 1102 | PC: 0011 | Stk: [999, 993] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 1103 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 1104 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1105 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 992007]
+Tick: 1106 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 1107 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 1108 | PC: 0015 | Stk: [0, 992007] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 1109 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 1110 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1111 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 1112 | PC: 001A | Stk: [992007] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 1113 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 1114 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 1115 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 992007]
+Tick: 1116 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1117 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 1118 | PC: 001E | Stk: [992007] | Exec: PUSH_M 260
+Tick: 1119 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 1120 | PC: 001F | Stk: [992007, 0] | Exec: PUSH 0
+Tick: 1121 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1122 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1123 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1124 | PC: 0024 | Stk: [992007] | Exec: PUSH_M 260
+Tick: 1125 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 1126 | PC: 0025 | Stk: [992007, 10] | Exec: PUSH 10
+Tick: 1127 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1128 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1129 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 7]
+Tick: 1130 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 1131 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1132 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 1133 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 1134 | PC: 002B | Stk: [0, 7] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1135 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1136 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1137 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 7]
+Tick: 1138 | PC: 002E | Stk: [992007] | Exec: PUSH_M 260
+Tick: 1139 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1140 | PC: 002F | Stk: [992007, 10] | Exec: PUSH 10
+Tick: 1141 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1142 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1143 | PC: 001E | Stk: [99200] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99200]
+Tick: 1144 | PC: 001F | Stk: [99200, 0] | Exec: PUSH 0
+Tick: 1145 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1146 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1147 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1148 | PC: 0024 | Stk: [99200] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1149 | PC: 0025 | Stk: [99200, 10] | Exec: PUSH 10
+Tick: 1150 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1151 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1152 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 1153 | PC: 0028 | Stk: [7] | Exec: PUSH_M 261
+Tick: 1154 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1155 | PC: 0029 | Stk: [7, 10] | Exec: PUSH 10
+Tick: 1156 | PC: 002A | Stk: [70] | Exec: MUL 0
+Tick: 1157 | PC: 002B | Stk: [70, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1158 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1159 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1160 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 70]
+Tick: 1161 | PC: 002E | Stk: [99200] | Exec: PUSH_M 260
+Tick: 1162 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1163 | PC: 002F | Stk: [99200, 10] | Exec: PUSH 10
+Tick: 1164 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1165 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1166 | PC: 001E | Stk: [9920] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9920]
+Tick: 1167 | PC: 001F | Stk: [9920, 0] | Exec: PUSH 0
+Tick: 1168 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1169 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1170 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1171 | PC: 0024 | Stk: [9920] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1172 | PC: 0025 | Stk: [9920, 10] | Exec: PUSH 10
+Tick: 1173 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1174 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1175 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 1176 | PC: 0028 | Stk: [70] | Exec: PUSH_M 261
+Tick: 1177 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1178 | PC: 0029 | Stk: [70, 10] | Exec: PUSH 10
+Tick: 1179 | PC: 002A | Stk: [700] | Exec: MUL 0
+Tick: 1180 | PC: 002B | Stk: [700, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1181 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1182 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1183 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 700]
+Tick: 1184 | PC: 002E | Stk: [9920] | Exec: PUSH_M 260
+Tick: 1185 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1186 | PC: 002F | Stk: [9920, 10] | Exec: PUSH 10
+Tick: 1187 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1188 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1189 | PC: 001E | Stk: [992] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 992]
+Tick: 1190 | PC: 001F | Stk: [992, 0] | Exec: PUSH 0
+Tick: 1191 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1192 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1193 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1194 | PC: 0024 | Stk: [992] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1195 | PC: 0025 | Stk: [992, 10] | Exec: PUSH 10
+Tick: 1196 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1197 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1198 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 2]
+Tick: 1199 | PC: 0028 | Stk: [700] | Exec: PUSH_M 261
+Tick: 1200 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1201 | PC: 0029 | Stk: [700, 10] | Exec: PUSH 10
+Tick: 1202 | PC: 002A | Stk: [7000] | Exec: MUL 0
+Tick: 1203 | PC: 002B | Stk: [7000, 2] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1204 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1205 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1206 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 7002]
+Tick: 1207 | PC: 002E | Stk: [992] | Exec: PUSH_M 260
+Tick: 1208 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1209 | PC: 002F | Stk: [992, 10] | Exec: PUSH 10
+Tick: 1210 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1211 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1212 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 1213 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 1214 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1215 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1216 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1217 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1218 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 1219 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1220 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1221 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 1222 | PC: 0028 | Stk: [7002] | Exec: PUSH_M 261
+Tick: 1223 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1224 | PC: 0029 | Stk: [7002, 10] | Exec: PUSH 10
+Tick: 1225 | PC: 002A | Stk: [70020] | Exec: MUL 0
+Tick: 1226 | PC: 002B | Stk: [70020, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1227 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1228 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1229 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 70029]
+Tick: 1230 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 1231 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1232 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 1233 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1234 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1235 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 1236 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 1237 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1238 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1239 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1240 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1241 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 1242 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1243 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1244 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 1245 | PC: 0028 | Stk: [70029] | Exec: PUSH_M 261
+Tick: 1246 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1247 | PC: 0029 | Stk: [70029, 10] | Exec: PUSH 10
+Tick: 1248 | PC: 002A | Stk: [700290] | Exec: MUL 0
+Tick: 1249 | PC: 002B | Stk: [700290, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1250 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1251 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1252 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 700299]
+Tick: 1253 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 1254 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1255 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 1256 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1257 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1258 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 1259 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1260 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 1261 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 1262 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1263 | PC: 0033 | Stk: [992007] | Exec: PUSH_M 259
+Tick: 1264 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 1265 | PC: 0034 | Stk: [992007, 700299] | Exec: PUSH_M 261
+Tick: 1266 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 1267 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 1268 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1269 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 1270 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 1271 | PC: 003C | Stk: [993] | Exec: PUSH_M 258
+Tick: 1272 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 1273 | PC: 003D | Stk: [993, 1] | Exec: PUSH 1
+Tick: 1274 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 1275 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 1276 | PC: 000A | Stk: [992] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 992]
+Tick: 1277 | PC: 000B | Stk: [992, 99] | Exec: PUSH 99
+Tick: 1278 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 1279 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1280 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 1281 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 1282 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 1283 | PC: 0011 | Stk: [999, 992] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 1284 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 1285 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1286 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 991008]
+Tick: 1287 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 1288 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 1289 | PC: 0015 | Stk: [0, 991008] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 1290 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 1291 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1292 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 1293 | PC: 001A | Stk: [991008] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 1294 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 1295 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 1296 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 991008]
+Tick: 1297 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1298 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 1299 | PC: 001E | Stk: [991008] | Exec: PUSH_M 260
+Tick: 1300 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 1301 | PC: 001F | Stk: [991008, 0] | Exec: PUSH 0
+Tick: 1302 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1303 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1304 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1305 | PC: 0024 | Stk: [991008] | Exec: PUSH_M 260
+Tick: 1306 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 1307 | PC: 0025 | Stk: [991008, 10] | Exec: PUSH 10
+Tick: 1308 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1309 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1310 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 8]
+Tick: 1311 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 1312 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1313 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 1314 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 1315 | PC: 002B | Stk: [0, 8] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1316 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1317 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1318 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 8]
+Tick: 1319 | PC: 002E | Stk: [991008] | Exec: PUSH_M 260
+Tick: 1320 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1321 | PC: 002F | Stk: [991008, 10] | Exec: PUSH 10
+Tick: 1322 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1323 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1324 | PC: 001E | Stk: [99100] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99100]
+Tick: 1325 | PC: 001F | Stk: [99100, 0] | Exec: PUSH 0
+Tick: 1326 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1327 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1328 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1329 | PC: 0024 | Stk: [99100] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1330 | PC: 0025 | Stk: [99100, 10] | Exec: PUSH 10
+Tick: 1331 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1332 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1333 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 1334 | PC: 0028 | Stk: [8] | Exec: PUSH_M 261
+Tick: 1335 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1336 | PC: 0029 | Stk: [8, 10] | Exec: PUSH 10
+Tick: 1337 | PC: 002A | Stk: [80] | Exec: MUL 0
+Tick: 1338 | PC: 002B | Stk: [80, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1339 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1340 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1341 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 80]
+Tick: 1342 | PC: 002E | Stk: [99100] | Exec: PUSH_M 260
+Tick: 1343 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1344 | PC: 002F | Stk: [99100, 10] | Exec: PUSH 10
+Tick: 1345 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1346 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1347 | PC: 001E | Stk: [9910] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9910]
+Tick: 1348 | PC: 001F | Stk: [9910, 0] | Exec: PUSH 0
+Tick: 1349 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1350 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1351 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1352 | PC: 0024 | Stk: [9910] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1353 | PC: 0025 | Stk: [9910, 10] | Exec: PUSH 10
+Tick: 1354 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1355 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1356 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 0]
+Tick: 1357 | PC: 0028 | Stk: [80] | Exec: PUSH_M 261
+Tick: 1358 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1359 | PC: 0029 | Stk: [80, 10] | Exec: PUSH 10
+Tick: 1360 | PC: 002A | Stk: [800] | Exec: MUL 0
+Tick: 1361 | PC: 002B | Stk: [800, 0] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1362 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1363 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1364 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 800]
+Tick: 1365 | PC: 002E | Stk: [9910] | Exec: PUSH_M 260
+Tick: 1366 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1367 | PC: 002F | Stk: [9910, 10] | Exec: PUSH 10
+Tick: 1368 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1369 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1370 | PC: 001E | Stk: [991] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 991]
+Tick: 1371 | PC: 001F | Stk: [991, 0] | Exec: PUSH 0
+Tick: 1372 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1373 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1374 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1375 | PC: 0024 | Stk: [991] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1376 | PC: 0025 | Stk: [991, 10] | Exec: PUSH 10
+Tick: 1377 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1378 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1379 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 1]
+Tick: 1380 | PC: 0028 | Stk: [800] | Exec: PUSH_M 261
+Tick: 1381 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1382 | PC: 0029 | Stk: [800, 10] | Exec: PUSH 10
+Tick: 1383 | PC: 002A | Stk: [8000] | Exec: MUL 0
+Tick: 1384 | PC: 002B | Stk: [8000, 1] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1385 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1386 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1387 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 8001]
+Tick: 1388 | PC: 002E | Stk: [991] | Exec: PUSH_M 260
+Tick: 1389 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1390 | PC: 002F | Stk: [991, 10] | Exec: PUSH 10
+Tick: 1391 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1392 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1393 | PC: 001E | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 99]
+Tick: 1394 | PC: 001F | Stk: [99, 0] | Exec: PUSH 0
+Tick: 1395 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1396 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1397 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1398 | PC: 0024 | Stk: [99] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1399 | PC: 0025 | Stk: [99, 10] | Exec: PUSH 10
+Tick: 1400 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1401 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1402 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 1403 | PC: 0028 | Stk: [8001] | Exec: PUSH_M 261
+Tick: 1404 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1405 | PC: 0029 | Stk: [8001, 10] | Exec: PUSH 10
+Tick: 1406 | PC: 002A | Stk: [80010] | Exec: MUL 0
+Tick: 1407 | PC: 002B | Stk: [80010, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1408 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1409 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1410 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 80019]
+Tick: 1411 | PC: 002E | Stk: [99] | Exec: PUSH_M 260
+Tick: 1412 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1413 | PC: 002F | Stk: [99, 10] | Exec: PUSH 10
+Tick: 1414 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1415 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1416 | PC: 001E | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 9]
+Tick: 1417 | PC: 001F | Stk: [9, 0] | Exec: PUSH 0
+Tick: 1418 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1419 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1420 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1421 | PC: 0024 | Stk: [9] | Exec: PUSH_M 260 [Reverse SWAP bypass]
+Tick: 1422 | PC: 0025 | Stk: [9, 10] | Exec: PUSH 10
+Tick: 1423 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1424 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1425 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 1426 | PC: 0028 | Stk: [80019] | Exec: PUSH_M 261
+Tick: 1427 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1428 | PC: 0029 | Stk: [80019, 10] | Exec: PUSH 10
+Tick: 1429 | PC: 002A | Stk: [800190] | Exec: MUL 0
+Tick: 1430 | PC: 002B | Stk: [800190, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1431 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1432 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1433 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 800199]
+Tick: 1434 | PC: 002E | Stk: [9] | Exec: PUSH_M 260
+Tick: 1435 | PC: 002F | PIPELINE STALL (Wait for Mem)
+Tick: 1436 | PC: 002F | Stk: [9, 10] | Exec: PUSH 10
+Tick: 1437 | PC: 0030 | Stk: [] | Exec: DIV 0 || POP_M 260 (Superscalar)
+Tick: 1438 | PC: 0032 | Stk: [] | Exec: JMP 30
+Tick: 1439 | PC: 001E | Stk: [0] | Exec: PUSH_M 260 [Reverse SWAP bypass] [MemWrite: 260 <- 0]
+Tick: 1440 | PC: 001F | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1441 | PC: 0020 | Stk: [1] | Exec: CMP 0
+Tick: 1442 | PC: 0021 | Stk: [1, 0] | Exec: PUSH 0
+Tick: 1443 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1444 | PC: 0033 | Stk: [991008] | Exec: PUSH_M 259
+Tick: 1445 | PC: 0034 | PIPELINE STALL (Wait for Mem)
+Tick: 1446 | PC: 0034 | Stk: [991008, 800199] | Exec: PUSH_M 261
+Tick: 1447 | PC: 0035 | PIPELINE STALL (Wait for Mem)
+Tick: 1448 | PC: 0035 | Stk: [0] | Exec: CMP 0
+Tick: 1449 | PC: 0036 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1450 | PC: 0037 | Stk: [] | Exec: CMP 0 || JZ 58 (Superscalar)
+Tick: 1451 | PC: 0039 | Stk: [] | Exec: JMP 60
+Tick: 1452 | PC: 003C | Stk: [992] | Exec: PUSH_M 258
+Tick: 1453 | PC: 003D | PIPELINE STALL (Wait for Mem)
+Tick: 1454 | PC: 003D | Stk: [992, 1] | Exec: PUSH 1
+Tick: 1455 | PC: 003E | Stk: [] | Exec: SUB 0 || POP_M 258 (Superscalar)
+Tick: 1456 | PC: 0040 | Stk: [] | Exec: JMP 10
+Tick: 1457 | PC: 000A | Stk: [991] | Exec: PUSH_M 258 [Reverse SWAP bypass] [MemWrite: 258 <- 991]
+Tick: 1458 | PC: 000B | Stk: [991, 99] | Exec: PUSH 99
+Tick: 1459 | PC: 000C | Stk: [0] | Exec: CMP 0
+Tick: 1460 | PC: 000D | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1461 | PC: 000E | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 1462 | PC: 0010 | Stk: [999] | Exec: PUSH_M 257
+Tick: 1463 | PC: 0011 | PIPELINE STALL (Wait for Mem)
+Tick: 1464 | PC: 0011 | Stk: [999, 991] | Exec: PUSH_M 258 [Reverse SWAP bypass]
+Tick: 1465 | PC: 0012 | Stk: [] | Exec: MUL 0 || POP_M 259 (Superscalar)
+Tick: 1466 | PC: 0014 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1467 | PC: 0014 | PIPELINE STALL (Wait for Mem) [MemWrite: 259 <- 990009]
+Tick: 1468 | PC: 0014 | Stk: [0] | Exec: PUSH_M 256
+Tick: 1469 | PC: 0015 | PIPELINE STALL (Wait for Mem)
+Tick: 1470 | PC: 0015 | Stk: [0, 990009] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 1471 | PC: 0016 | Stk: [0] | Exec: GT 0
+Tick: 1472 | PC: 0017 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1473 | PC: 0018 | Stk: [] | Exec: CMP 0 || JZ 65 (Superscalar)
+Tick: 1474 | PC: 001A | Stk: [990009] | Exec: PUSH_M 259 [Reverse SWAP bypass]
+Tick: 1475 | PC: 001B | Stk: [] | Exec: POP_M 260
+Tick: 1476 | PC: 001C | Stk: [0] | Exec: PUSH 0
+Tick: 1477 | PC: 001D | Stk: [] | Exec: POP_M 261 [MemWrite: 260 <- 990009]
+Tick: 1478 | PC: 001E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1479 | PC: 001E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 0]
+Tick: 1480 | PC: 001E | Stk: [990009] | Exec: PUSH_M 260
+Tick: 1481 | PC: 001F | PIPELINE STALL (Wait for Mem)
+Tick: 1482 | PC: 001F | Stk: [990009, 0] | Exec: PUSH 0
+Tick: 1483 | PC: 0020 | Stk: [0] | Exec: CMP 0
+Tick: 1484 | PC: 0021 | Stk: [0, 0] | Exec: PUSH 0
+Tick: 1485 | PC: 0022 | Stk: [] | Exec: CMP 0 || JZ 51 (Superscalar)
+Tick: 1486 | PC: 0024 | Stk: [990009] | Exec: PUSH_M 260
+Tick: 1487 | PC: 0025 | PIPELINE STALL (Wait for Mem)
+Tick: 1488 | PC: 0025 | Stk: [990009, 10] | Exec: PUSH 10
+Tick: 1489 | PC: 0026 | Stk: [] | Exec: MOD 0 || POP_M 262 (Superscalar)
+Tick: 1490 | PC: 0028 | STRUCTURAL STALL (Shadow Busy)
+Tick: 1491 | PC: 0028 | PIPELINE STALL (Wait for Mem) [MemWrite: 262 <- 9]
+Tick: 1492 | PC: 0028 | Stk: [0] | Exec: PUSH_M 261
+Tick: 1493 | PC: 0029 | PIPELINE STALL (Wait for Mem)
+Tick: 1494 | PC: 0029 | Stk: [0, 10] | Exec: PUSH 10
+Tick: 1495 | PC: 002A | Stk: [0] | Exec: MUL 0
+Tick: 1496 | PC: 002B | Stk: [0, 9] | Exec: PUSH_M 262 [Reverse SWAP bypass]
+Tick: 1497 | PC: 002C | Stk: [] | Exec: ADD 0 || POP_M 261 (Superscalar)
+Tick: 1498 | PC: 002E | STRUCTURAL STALL (Shadow Busy)
+Tick: 1499 | PC: 002E | PIPELINE STALL (Wait for Mem) [MemWrite: 261 <- 9]
+Tick: 1500 | PC: 002E | Stk: [990009] | Exec: PUSH_M 260
+
+[... Потактовый лог отключен после 1500 ради производительности ...]
+[... Процессор продолжает вычисления в фоновом режиме...]
+
+--- Simulation Ended ---
+Total Ticks: 1134422
+Output Buffer: 906609
