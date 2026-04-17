@@ -1,0 +1,1568 @@
+in_source: |-
+  .data
+    prompt_str: .pstr "What is your name?\n"
+    hello_str:  .pstr "Hello, "
+    excl_str:   .pstr "!\n"
+    
+    name_buf: .word 0 
+              .org 0x0100 
+    
+    char: .word 0
+    pstr_ptr: .word 0
+    pstr_len: .word 0
+    pstr_idx: .word 0
+    
+    .text
+    .org 0x0200
+    _start:                 
+        push prompt_str
+        call print_pstr
+    
+        push name_buf   
+        push 0          
+        store           
+    
+    read_loop:
+        in 0
+        pop_m char
+        
+        push_m char
+        jz print_hello
+        
+        push_m char
+        push 10
+        sub                 
+        jz print_hello
+    
+        push name_buf
+        push name_buf
+        load
+        add
+        push 1
+        add
+        push_m char
+        store
+    
+        push name_buf
+        push name_buf
+        load
+        push 1
+        add
+        store
+    
+        jmp read_loop
+    
+    print_hello:
+        push hello_str
+        call print_pstr
+        
+        push name_buf
+        call print_pstr
+    
+        push excl_str
+        call print_pstr
+        halt
+    
+    print_pstr:
+        pop_m pstr_ptr      
+        push_m pstr_ptr
+        load
+        pop_m pstr_len
+        
+        push 1
+        pop_m pstr_idx
+    print_loop:
+        push_m pstr_idx
+        push_m pstr_len
+        gt
+        jz print_char
+        ret                 
+    print_char:
+        push_m pstr_ptr
+        push_m pstr_idx
+        add
+        load
+        out 1               
+        
+        push_m pstr_idx
+        push 1
+        add
+        pop_m pstr_idx
+        jmp print_loop
+in_schedule: |-
+  [(10, 'A'), (20, 'l'), (30, 'i'), (40, 'c'), (50, 'e'), (60, '\n')]
+out_log: |-
+  Tick: 0001 | PC: 0200 | Stk: [0] | Exec: PUSH 0
+  Tick: 0002 | Pipeline Active
+  Tick: 0003 | PC: 0201 | Stk: [0] | Exec: CALL 547
+  Tick: 0004 | Pipeline Active
+  Tick: 0005 | PC: 0223 | Stk: [] | Exec: POP_M 257
+  Tick: 0006 | PIPELINE STALL
+  Tick: 0007 | Pipeline Active [MemWrite: 257 <- 0]
+  Tick: 0008 | PC: 0224 | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0009 | PIPELINE STALL
+  Tick: 0010 | Pipeline Active
+  Tick: 0011 | PC: 0225 | Stk: [20] | Exec: LOAD 0
+  Tick: 0012 | Pipeline Active
+  Tick: 0013 | PC: 0226 | Stk: [] | Exec: POP_M 258
+  Tick: 0014 | PIPELINE STALL
+  Tick: 0015 | Pipeline Active [MemWrite: 258 <- 20]
+  Tick: 0016 | PC: 0227 | Stk: [] | Exec: PUSH 1 || POP_M 259 (Superscalar)
+  Tick: 0017 | PIPELINE STALL
+  Tick: 0018 | Pipeline Active [MemWrite: 259 <- 1]
+  Tick: 0019 | PC: 0229 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 0020 | PIPELINE STALL
+  Tick: 0021 | Pipeline Active
+  Tick: 0022 | PC: 022A | Stk: [1, 20] | Exec: PUSH_M 258
+  Tick: 0023 | PIPELINE STALL
+  Tick: 0024 | Pipeline Active
+  Tick: 0025 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0026 | Pipeline Active
+  Tick: 0027 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0028 | PIPELINE STALL
+  Tick: 0029 | Pipeline Active
+  Tick: 0030 | PC: 022F | Stk: [0, 1] | Exec: PUSH_M 259
+  Tick: 0031 | PIPELINE STALL
+  Tick: 0032 | Pipeline Active
+  Tick: 0033 | PC: 0230 | Stk: [1] | Exec: ADD 0
+  Tick: 0034 | Pipeline Active
+  Tick: 0035 | PC: 0231 | Stk: [87] | Exec: LOAD 0
+  Tick: 0036 | Pipeline Active
+  Tick: 0037 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0038 | Pipeline Active
+  Tick: 0039 | PC: 0233 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 0040 | PIPELINE STALL
+  Tick: 0041 | Pipeline Active
+  Tick: 0042 | PC: 0234 | Stk: [1, 1] | Exec: PUSH 1
+  Tick: 0043 | Pipeline Active
+  Tick: 0044 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0045 | PIPELINE STALL
+  Tick: 0046 | Pipeline Active [MemWrite: 259 <- 2]
+  Tick: 0047 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0048 | Pipeline Active
+  Tick: 0049 | PC: 0229 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 0050 | PIPELINE STALL
+  Tick: 0051 | Pipeline Active
+  Tick: 0052 | PC: 022A | Stk: [2, 20] | Exec: PUSH_M 258
+  Tick: 0053 | PIPELINE STALL
+  Tick: 0054 | Pipeline Active
+  Tick: 0055 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0056 | Pipeline Active
+  Tick: 0057 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0058 | PIPELINE STALL
+  Tick: 0059 | Pipeline Active
+  Tick: 0060 | PC: 022F | Stk: [0, 2] | Exec: PUSH_M 259
+  Tick: 0061 | PIPELINE STALL
+  Tick: 0062 | Pipeline Active
+  Tick: 0063 | PC: 0230 | Stk: [2] | Exec: ADD 0
+  Tick: 0064 | Pipeline Active
+  Tick: 0065 | PC: 0231 | Stk: [104] | Exec: LOAD 0
+  Tick: 0066 | Pipeline Active
+  Tick: 0067 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0068 | Pipeline Active
+  Tick: 0069 | PC: 0233 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 0070 | PIPELINE STALL
+  Tick: 0071 | Pipeline Active
+  Tick: 0072 | PC: 0234 | Stk: [2, 1] | Exec: PUSH 1
+  Tick: 0073 | Pipeline Active
+  Tick: 0074 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0075 | PIPELINE STALL
+  Tick: 0076 | Pipeline Active [MemWrite: 259 <- 3]
+  Tick: 0077 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0078 | Pipeline Active
+  Tick: 0079 | PC: 0229 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 0080 | PIPELINE STALL
+  Tick: 0081 | Pipeline Active
+  Tick: 0082 | PC: 022A | Stk: [3, 20] | Exec: PUSH_M 258
+  Tick: 0083 | PIPELINE STALL
+  Tick: 0084 | Pipeline Active
+  Tick: 0085 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0086 | Pipeline Active
+  Tick: 0087 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0088 | PIPELINE STALL
+  Tick: 0089 | Pipeline Active
+  Tick: 0090 | PC: 022F | Stk: [0, 3] | Exec: PUSH_M 259
+  Tick: 0091 | PIPELINE STALL
+  Tick: 0092 | Pipeline Active
+  Tick: 0093 | PC: 0230 | Stk: [3] | Exec: ADD 0
+  Tick: 0094 | Pipeline Active
+  Tick: 0095 | PC: 0231 | Stk: [97] | Exec: LOAD 0
+  Tick: 0096 | Pipeline Active
+  Tick: 0097 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0098 | Pipeline Active
+  Tick: 0099 | PC: 0233 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 0100 | PIPELINE STALL
+  Tick: 0101 | Pipeline Active
+  Tick: 0102 | PC: 0234 | Stk: [3, 1] | Exec: PUSH 1
+  Tick: 0103 | Pipeline Active
+  Tick: 0104 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0105 | PIPELINE STALL
+  Tick: 0106 | Pipeline Active [MemWrite: 259 <- 4]
+  Tick: 0107 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0108 | Pipeline Active
+  Tick: 0109 | PC: 0229 | Stk: [4] | Exec: PUSH_M 259
+  Tick: 0110 | PIPELINE STALL
+  Tick: 0111 | Pipeline Active
+  Tick: 0112 | PC: 022A | Stk: [4, 20] | Exec: PUSH_M 258
+  Tick: 0113 | PIPELINE STALL
+  Tick: 0114 | Pipeline Active
+  Tick: 0115 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0116 | Pipeline Active
+  Tick: 0117 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0118 | PIPELINE STALL
+  Tick: 0119 | Pipeline Active
+  Tick: 0120 | PC: 022F | Stk: [0, 4] | Exec: PUSH_M 259
+  Tick: 0121 | PIPELINE STALL
+  Tick: 0122 | Pipeline Active
+  Tick: 0123 | PC: 0230 | Stk: [4] | Exec: ADD 0
+  Tick: 0124 | Pipeline Active
+  Tick: 0125 | PC: 0231 | Stk: [116] | Exec: LOAD 0
+  Tick: 0126 | Pipeline Active
+  Tick: 0127 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0128 | Pipeline Active
+  Tick: 0129 | PC: 0233 | Stk: [4] | Exec: PUSH_M 259
+  Tick: 0130 | PIPELINE STALL
+  Tick: 0131 | Pipeline Active
+  Tick: 0132 | PC: 0234 | Stk: [4, 1] | Exec: PUSH 1
+  Tick: 0133 | Pipeline Active
+  Tick: 0134 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0135 | PIPELINE STALL
+  Tick: 0136 | Pipeline Active [MemWrite: 259 <- 5]
+  Tick: 0137 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0138 | Pipeline Active
+  Tick: 0139 | PC: 0229 | Stk: [5] | Exec: PUSH_M 259
+  Tick: 0140 | PIPELINE STALL
+  Tick: 0141 | Pipeline Active
+  Tick: 0142 | PC: 022A | Stk: [5, 20] | Exec: PUSH_M 258
+  Tick: 0143 | PIPELINE STALL
+  Tick: 0144 | Pipeline Active
+  Tick: 0145 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0146 | Pipeline Active
+  Tick: 0147 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0148 | PIPELINE STALL
+  Tick: 0149 | Pipeline Active
+  Tick: 0150 | PC: 022F | Stk: [0, 5] | Exec: PUSH_M 259
+  Tick: 0151 | PIPELINE STALL
+  Tick: 0152 | Pipeline Active
+  Tick: 0153 | PC: 0230 | Stk: [5] | Exec: ADD 0
+  Tick: 0154 | Pipeline Active
+  Tick: 0155 | PC: 0231 | Stk: [32] | Exec: LOAD 0
+  Tick: 0156 | Pipeline Active
+  Tick: 0157 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0158 | Pipeline Active
+  Tick: 0159 | PC: 0233 | Stk: [5] | Exec: PUSH_M 259
+  Tick: 0160 | PIPELINE STALL
+  Tick: 0161 | Pipeline Active
+  Tick: 0162 | PC: 0234 | Stk: [5, 1] | Exec: PUSH 1
+  Tick: 0163 | Pipeline Active
+  Tick: 0164 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0165 | PIPELINE STALL
+  Tick: 0166 | Pipeline Active [MemWrite: 259 <- 6]
+  Tick: 0167 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0168 | Pipeline Active
+  Tick: 0169 | PC: 0229 | Stk: [6] | Exec: PUSH_M 259
+  Tick: 0170 | PIPELINE STALL
+  Tick: 0171 | Pipeline Active
+  Tick: 0172 | PC: 022A | Stk: [6, 20] | Exec: PUSH_M 258
+  Tick: 0173 | PIPELINE STALL
+  Tick: 0174 | Pipeline Active
+  Tick: 0175 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0176 | Pipeline Active
+  Tick: 0177 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0178 | PIPELINE STALL
+  Tick: 0179 | Pipeline Active
+  Tick: 0180 | PC: 022F | Stk: [0, 6] | Exec: PUSH_M 259
+  Tick: 0181 | PIPELINE STALL
+  Tick: 0182 | Pipeline Active
+  Tick: 0183 | PC: 0230 | Stk: [6] | Exec: ADD 0
+  Tick: 0184 | Pipeline Active
+  Tick: 0185 | PC: 0231 | Stk: [105] | Exec: LOAD 0
+  Tick: 0186 | Pipeline Active
+  Tick: 0187 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0188 | Pipeline Active
+  Tick: 0189 | PC: 0233 | Stk: [6] | Exec: PUSH_M 259
+  Tick: 0190 | PIPELINE STALL
+  Tick: 0191 | Pipeline Active
+  Tick: 0192 | PC: 0234 | Stk: [6, 1] | Exec: PUSH 1
+  Tick: 0193 | Pipeline Active
+  Tick: 0194 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0195 | PIPELINE STALL
+  Tick: 0196 | Pipeline Active [MemWrite: 259 <- 7]
+  Tick: 0197 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0198 | Pipeline Active
+  Tick: 0199 | PC: 0229 | Stk: [7] | Exec: PUSH_M 259
+  Tick: 0200 | PIPELINE STALL
+  Tick: 0201 | Pipeline Active
+  Tick: 0202 | PC: 022A | Stk: [7, 20] | Exec: PUSH_M 258
+  Tick: 0203 | PIPELINE STALL
+  Tick: 0204 | Pipeline Active
+  Tick: 0205 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0206 | Pipeline Active
+  Tick: 0207 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0208 | PIPELINE STALL
+  Tick: 0209 | Pipeline Active
+  Tick: 0210 | PC: 022F | Stk: [0, 7] | Exec: PUSH_M 259
+  Tick: 0211 | PIPELINE STALL
+  Tick: 0212 | Pipeline Active
+  Tick: 0213 | PC: 0230 | Stk: [7] | Exec: ADD 0
+  Tick: 0214 | Pipeline Active
+  Tick: 0215 | PC: 0231 | Stk: [115] | Exec: LOAD 0
+  Tick: 0216 | Pipeline Active
+  Tick: 0217 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0218 | Pipeline Active
+  Tick: 0219 | PC: 0233 | Stk: [7] | Exec: PUSH_M 259
+  Tick: 0220 | PIPELINE STALL
+  Tick: 0221 | Pipeline Active
+  Tick: 0222 | PC: 0234 | Stk: [7, 1] | Exec: PUSH 1
+  Tick: 0223 | Pipeline Active
+  Tick: 0224 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0225 | PIPELINE STALL
+  Tick: 0226 | Pipeline Active [MemWrite: 259 <- 8]
+  Tick: 0227 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0228 | Pipeline Active
+  Tick: 0229 | PC: 0229 | Stk: [8] | Exec: PUSH_M 259
+  Tick: 0230 | PIPELINE STALL
+  Tick: 0231 | Pipeline Active
+  Tick: 0232 | PC: 022A | Stk: [8, 20] | Exec: PUSH_M 258
+  Tick: 0233 | PIPELINE STALL
+  Tick: 0234 | Pipeline Active
+  Tick: 0235 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0236 | Pipeline Active
+  Tick: 0237 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0238 | PIPELINE STALL
+  Tick: 0239 | Pipeline Active
+  Tick: 0240 | PC: 022F | Stk: [0, 8] | Exec: PUSH_M 259
+  Tick: 0241 | PIPELINE STALL
+  Tick: 0242 | Pipeline Active
+  Tick: 0243 | PC: 0230 | Stk: [8] | Exec: ADD 0
+  Tick: 0244 | Pipeline Active
+  Tick: 0245 | PC: 0231 | Stk: [32] | Exec: LOAD 0
+  Tick: 0246 | Pipeline Active
+  Tick: 0247 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0248 | Pipeline Active
+  Tick: 0249 | PC: 0233 | Stk: [8] | Exec: PUSH_M 259
+  Tick: 0250 | PIPELINE STALL
+  Tick: 0251 | Pipeline Active
+  Tick: 0252 | PC: 0234 | Stk: [8, 1] | Exec: PUSH 1
+  Tick: 0253 | Pipeline Active
+  Tick: 0254 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0255 | PIPELINE STALL
+  Tick: 0256 | Pipeline Active [MemWrite: 259 <- 9]
+  Tick: 0257 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0258 | Pipeline Active
+  Tick: 0259 | PC: 0229 | Stk: [9] | Exec: PUSH_M 259
+  Tick: 0260 | PIPELINE STALL
+  Tick: 0261 | Pipeline Active
+  Tick: 0262 | PC: 022A | Stk: [9, 20] | Exec: PUSH_M 258
+  Tick: 0263 | PIPELINE STALL
+  Tick: 0264 | Pipeline Active
+  Tick: 0265 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0266 | Pipeline Active
+  Tick: 0267 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0268 | PIPELINE STALL
+  Tick: 0269 | Pipeline Active
+  Tick: 0270 | PC: 022F | Stk: [0, 9] | Exec: PUSH_M 259
+  Tick: 0271 | PIPELINE STALL
+  Tick: 0272 | Pipeline Active
+  Tick: 0273 | PC: 0230 | Stk: [9] | Exec: ADD 0
+  Tick: 0274 | Pipeline Active
+  Tick: 0275 | PC: 0231 | Stk: [121] | Exec: LOAD 0
+  Tick: 0276 | Pipeline Active
+  Tick: 0277 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0278 | Pipeline Active
+  Tick: 0279 | PC: 0233 | Stk: [9] | Exec: PUSH_M 259
+  Tick: 0280 | PIPELINE STALL
+  Tick: 0281 | Pipeline Active
+  Tick: 0282 | PC: 0234 | Stk: [9, 1] | Exec: PUSH 1
+  Tick: 0283 | Pipeline Active
+  Tick: 0284 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0285 | PIPELINE STALL
+  Tick: 0286 | Pipeline Active [MemWrite: 259 <- 10]
+  Tick: 0287 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0288 | Pipeline Active
+  Tick: 0289 | PC: 0229 | Stk: [10] | Exec: PUSH_M 259
+  Tick: 0290 | PIPELINE STALL
+  Tick: 0291 | Pipeline Active
+  Tick: 0292 | PC: 022A | Stk: [10, 20] | Exec: PUSH_M 258
+  Tick: 0293 | PIPELINE STALL
+  Tick: 0294 | Pipeline Active
+  Tick: 0295 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0296 | Pipeline Active
+  Tick: 0297 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0298 | PIPELINE STALL
+  Tick: 0299 | Pipeline Active
+  Tick: 0300 | PC: 022F | Stk: [0, 10] | Exec: PUSH_M 259
+  Tick: 0301 | PIPELINE STALL
+  Tick: 0302 | Pipeline Active
+  Tick: 0303 | PC: 0230 | Stk: [10] | Exec: ADD 0
+  Tick: 0304 | Pipeline Active
+  Tick: 0305 | PC: 0231 | Stk: [111] | Exec: LOAD 0
+  Tick: 0306 | Pipeline Active
+  Tick: 0307 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0308 | Pipeline Active
+  Tick: 0309 | PC: 0233 | Stk: [10] | Exec: PUSH_M 259
+  Tick: 0310 | PIPELINE STALL
+  Tick: 0311 | Pipeline Active
+  Tick: 0312 | PC: 0234 | Stk: [10, 1] | Exec: PUSH 1
+  Tick: 0313 | Pipeline Active
+  Tick: 0314 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0315 | PIPELINE STALL
+  Tick: 0316 | Pipeline Active [MemWrite: 259 <- 11]
+  Tick: 0317 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0318 | Pipeline Active
+  Tick: 0319 | PC: 0229 | Stk: [11] | Exec: PUSH_M 259
+  Tick: 0320 | PIPELINE STALL
+  Tick: 0321 | Pipeline Active
+  Tick: 0322 | PC: 022A | Stk: [11, 20] | Exec: PUSH_M 258
+  Tick: 0323 | PIPELINE STALL
+  Tick: 0324 | Pipeline Active
+  Tick: 0325 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0326 | Pipeline Active
+  Tick: 0327 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0328 | PIPELINE STALL
+  Tick: 0329 | Pipeline Active
+  Tick: 0330 | PC: 022F | Stk: [0, 11] | Exec: PUSH_M 259
+  Tick: 0331 | PIPELINE STALL
+  Tick: 0332 | Pipeline Active
+  Tick: 0333 | PC: 0230 | Stk: [11] | Exec: ADD 0
+  Tick: 0334 | Pipeline Active
+  Tick: 0335 | PC: 0231 | Stk: [117] | Exec: LOAD 0
+  Tick: 0336 | Pipeline Active
+  Tick: 0337 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0338 | Pipeline Active
+  Tick: 0339 | PC: 0233 | Stk: [11] | Exec: PUSH_M 259
+  Tick: 0340 | PIPELINE STALL
+  Tick: 0341 | Pipeline Active
+  Tick: 0342 | PC: 0234 | Stk: [11, 1] | Exec: PUSH 1
+  Tick: 0343 | Pipeline Active
+  Tick: 0344 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0345 | PIPELINE STALL
+  Tick: 0346 | Pipeline Active [MemWrite: 259 <- 12]
+  Tick: 0347 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0348 | Pipeline Active
+  Tick: 0349 | PC: 0229 | Stk: [12] | Exec: PUSH_M 259
+  Tick: 0350 | PIPELINE STALL
+  Tick: 0351 | Pipeline Active
+  Tick: 0352 | PC: 022A | Stk: [12, 20] | Exec: PUSH_M 258
+  Tick: 0353 | PIPELINE STALL
+  Tick: 0354 | Pipeline Active
+  Tick: 0355 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0356 | Pipeline Active
+  Tick: 0357 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0358 | PIPELINE STALL
+  Tick: 0359 | Pipeline Active
+  Tick: 0360 | PC: 022F | Stk: [0, 12] | Exec: PUSH_M 259
+  Tick: 0361 | PIPELINE STALL
+  Tick: 0362 | Pipeline Active
+  Tick: 0363 | PC: 0230 | Stk: [12] | Exec: ADD 0
+  Tick: 0364 | Pipeline Active
+  Tick: 0365 | PC: 0231 | Stk: [114] | Exec: LOAD 0
+  Tick: 0366 | Pipeline Active
+  Tick: 0367 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0368 | Pipeline Active
+  Tick: 0369 | PC: 0233 | Stk: [12] | Exec: PUSH_M 259
+  Tick: 0370 | PIPELINE STALL
+  Tick: 0371 | Pipeline Active
+  Tick: 0372 | PC: 0234 | Stk: [12, 1] | Exec: PUSH 1
+  Tick: 0373 | Pipeline Active
+  Tick: 0374 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0375 | PIPELINE STALL
+  Tick: 0376 | Pipeline Active [MemWrite: 259 <- 13]
+  Tick: 0377 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0378 | Pipeline Active
+  Tick: 0379 | PC: 0229 | Stk: [13] | Exec: PUSH_M 259
+  Tick: 0380 | PIPELINE STALL
+  Tick: 0381 | Pipeline Active
+  Tick: 0382 | PC: 022A | Stk: [13, 20] | Exec: PUSH_M 258
+  Tick: 0383 | PIPELINE STALL
+  Tick: 0384 | Pipeline Active
+  Tick: 0385 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0386 | Pipeline Active
+  Tick: 0387 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0388 | PIPELINE STALL
+  Tick: 0389 | Pipeline Active
+  Tick: 0390 | PC: 022F | Stk: [0, 13] | Exec: PUSH_M 259
+  Tick: 0391 | PIPELINE STALL
+  Tick: 0392 | Pipeline Active
+  Tick: 0393 | PC: 0230 | Stk: [13] | Exec: ADD 0
+  Tick: 0394 | Pipeline Active
+  Tick: 0395 | PC: 0231 | Stk: [32] | Exec: LOAD 0
+  Tick: 0396 | Pipeline Active
+  Tick: 0397 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0398 | Pipeline Active
+  Tick: 0399 | PC: 0233 | Stk: [13] | Exec: PUSH_M 259
+  Tick: 0400 | PIPELINE STALL
+  Tick: 0401 | Pipeline Active
+  Tick: 0402 | PC: 0234 | Stk: [13, 1] | Exec: PUSH 1
+  Tick: 0403 | Pipeline Active
+  Tick: 0404 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0405 | PIPELINE STALL
+  Tick: 0406 | Pipeline Active [MemWrite: 259 <- 14]
+  Tick: 0407 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0408 | Pipeline Active
+  Tick: 0409 | PC: 0229 | Stk: [14] | Exec: PUSH_M 259
+  Tick: 0410 | PIPELINE STALL
+  Tick: 0411 | Pipeline Active
+  Tick: 0412 | PC: 022A | Stk: [14, 20] | Exec: PUSH_M 258
+  Tick: 0413 | PIPELINE STALL
+  Tick: 0414 | Pipeline Active
+  Tick: 0415 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0416 | Pipeline Active
+  Tick: 0417 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0418 | PIPELINE STALL
+  Tick: 0419 | Pipeline Active
+  Tick: 0420 | PC: 022F | Stk: [0, 14] | Exec: PUSH_M 259
+  Tick: 0421 | PIPELINE STALL
+  Tick: 0422 | Pipeline Active
+  Tick: 0423 | PC: 0230 | Stk: [14] | Exec: ADD 0
+  Tick: 0424 | Pipeline Active
+  Tick: 0425 | PC: 0231 | Stk: [110] | Exec: LOAD 0
+  Tick: 0426 | Pipeline Active
+  Tick: 0427 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0428 | Pipeline Active
+  Tick: 0429 | PC: 0233 | Stk: [14] | Exec: PUSH_M 259
+  Tick: 0430 | PIPELINE STALL
+  Tick: 0431 | Pipeline Active
+  Tick: 0432 | PC: 0234 | Stk: [14, 1] | Exec: PUSH 1
+  Tick: 0433 | Pipeline Active
+  Tick: 0434 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0435 | PIPELINE STALL
+  Tick: 0436 | Pipeline Active [MemWrite: 259 <- 15]
+  Tick: 0437 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0438 | Pipeline Active
+  Tick: 0439 | PC: 0229 | Stk: [15] | Exec: PUSH_M 259
+  Tick: 0440 | PIPELINE STALL
+  Tick: 0441 | Pipeline Active
+  Tick: 0442 | PC: 022A | Stk: [15, 20] | Exec: PUSH_M 258
+  Tick: 0443 | PIPELINE STALL
+  Tick: 0444 | Pipeline Active
+  Tick: 0445 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0446 | Pipeline Active
+  Tick: 0447 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0448 | PIPELINE STALL
+  Tick: 0449 | Pipeline Active
+  Tick: 0450 | PC: 022F | Stk: [0, 15] | Exec: PUSH_M 259
+  Tick: 0451 | PIPELINE STALL
+  Tick: 0452 | Pipeline Active
+  Tick: 0453 | PC: 0230 | Stk: [15] | Exec: ADD 0
+  Tick: 0454 | Pipeline Active
+  Tick: 0455 | PC: 0231 | Stk: [97] | Exec: LOAD 0
+  Tick: 0456 | Pipeline Active
+  Tick: 0457 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0458 | Pipeline Active
+  Tick: 0459 | PC: 0233 | Stk: [15] | Exec: PUSH_M 259
+  Tick: 0460 | PIPELINE STALL
+  Tick: 0461 | Pipeline Active
+  Tick: 0462 | PC: 0234 | Stk: [15, 1] | Exec: PUSH 1
+  Tick: 0463 | Pipeline Active
+  Tick: 0464 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0465 | PIPELINE STALL
+  Tick: 0466 | Pipeline Active [MemWrite: 259 <- 16]
+  Tick: 0467 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0468 | Pipeline Active
+  Tick: 0469 | PC: 0229 | Stk: [16] | Exec: PUSH_M 259
+  Tick: 0470 | PIPELINE STALL
+  Tick: 0471 | Pipeline Active
+  Tick: 0472 | PC: 022A | Stk: [16, 20] | Exec: PUSH_M 258
+  Tick: 0473 | PIPELINE STALL
+  Tick: 0474 | Pipeline Active
+  Tick: 0475 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0476 | Pipeline Active
+  Tick: 0477 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0478 | PIPELINE STALL
+  Tick: 0479 | Pipeline Active
+  Tick: 0480 | PC: 022F | Stk: [0, 16] | Exec: PUSH_M 259
+  Tick: 0481 | PIPELINE STALL
+  Tick: 0482 | Pipeline Active
+  Tick: 0483 | PC: 0230 | Stk: [16] | Exec: ADD 0
+  Tick: 0484 | Pipeline Active
+  Tick: 0485 | PC: 0231 | Stk: [109] | Exec: LOAD 0
+  Tick: 0486 | Pipeline Active
+  Tick: 0487 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0488 | Pipeline Active
+  Tick: 0489 | PC: 0233 | Stk: [16] | Exec: PUSH_M 259
+  Tick: 0490 | PIPELINE STALL
+  Tick: 0491 | Pipeline Active
+  Tick: 0492 | PC: 0234 | Stk: [16, 1] | Exec: PUSH 1
+  Tick: 0493 | Pipeline Active
+  Tick: 0494 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0495 | PIPELINE STALL
+  Tick: 0496 | Pipeline Active [MemWrite: 259 <- 17]
+  Tick: 0497 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0498 | Pipeline Active
+  Tick: 0499 | PC: 0229 | Stk: [17] | Exec: PUSH_M 259
+  Tick: 0500 | PIPELINE STALL
+  Tick: 0501 | Pipeline Active
+  Tick: 0502 | PC: 022A | Stk: [17, 20] | Exec: PUSH_M 258
+  Tick: 0503 | PIPELINE STALL
+  Tick: 0504 | Pipeline Active
+  Tick: 0505 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0506 | Pipeline Active
+  Tick: 0507 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0508 | PIPELINE STALL
+  Tick: 0509 | Pipeline Active
+  Tick: 0510 | PC: 022F | Stk: [0, 17] | Exec: PUSH_M 259
+  Tick: 0511 | PIPELINE STALL
+  Tick: 0512 | Pipeline Active
+  Tick: 0513 | PC: 0230 | Stk: [17] | Exec: ADD 0
+  Tick: 0514 | Pipeline Active
+  Tick: 0515 | PC: 0231 | Stk: [101] | Exec: LOAD 0
+  Tick: 0516 | Pipeline Active
+  Tick: 0517 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0518 | Pipeline Active
+  Tick: 0519 | PC: 0233 | Stk: [17] | Exec: PUSH_M 259
+  Tick: 0520 | PIPELINE STALL
+  Tick: 0521 | Pipeline Active
+  Tick: 0522 | PC: 0234 | Stk: [17, 1] | Exec: PUSH 1
+  Tick: 0523 | Pipeline Active
+  Tick: 0524 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0525 | PIPELINE STALL
+  Tick: 0526 | Pipeline Active [MemWrite: 259 <- 18]
+  Tick: 0527 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0528 | Pipeline Active
+  Tick: 0529 | PC: 0229 | Stk: [18] | Exec: PUSH_M 259
+  Tick: 0530 | PIPELINE STALL
+  Tick: 0531 | Pipeline Active
+  Tick: 0532 | PC: 022A | Stk: [18, 20] | Exec: PUSH_M 258
+  Tick: 0533 | PIPELINE STALL
+  Tick: 0534 | Pipeline Active
+  Tick: 0535 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0536 | Pipeline Active
+  Tick: 0537 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0538 | PIPELINE STALL
+  Tick: 0539 | Pipeline Active
+  Tick: 0540 | PC: 022F | Stk: [0, 18] | Exec: PUSH_M 259
+  Tick: 0541 | PIPELINE STALL
+  Tick: 0542 | Pipeline Active
+  Tick: 0543 | PC: 0230 | Stk: [18] | Exec: ADD 0
+  Tick: 0544 | Pipeline Active
+  Tick: 0545 | PC: 0231 | Stk: [63] | Exec: LOAD 0
+  Tick: 0546 | Pipeline Active
+  Tick: 0547 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0548 | Pipeline Active
+  Tick: 0549 | PC: 0233 | Stk: [18] | Exec: PUSH_M 259
+  Tick: 0550 | PIPELINE STALL
+  Tick: 0551 | Pipeline Active
+  Tick: 0552 | PC: 0234 | Stk: [18, 1] | Exec: PUSH 1
+  Tick: 0553 | Pipeline Active
+  Tick: 0554 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0555 | PIPELINE STALL
+  Tick: 0556 | Pipeline Active [MemWrite: 259 <- 19]
+  Tick: 0557 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0558 | Pipeline Active
+  Tick: 0559 | PC: 0229 | Stk: [19] | Exec: PUSH_M 259
+  Tick: 0560 | PIPELINE STALL
+  Tick: 0561 | Pipeline Active
+  Tick: 0562 | PC: 022A | Stk: [19, 20] | Exec: PUSH_M 258
+  Tick: 0563 | PIPELINE STALL
+  Tick: 0564 | Pipeline Active
+  Tick: 0565 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0566 | Pipeline Active
+  Tick: 0567 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0568 | PIPELINE STALL
+  Tick: 0569 | Pipeline Active
+  Tick: 0570 | PC: 022F | Stk: [0, 19] | Exec: PUSH_M 259
+  Tick: 0571 | PIPELINE STALL
+  Tick: 0572 | Pipeline Active
+  Tick: 0573 | PC: 0230 | Stk: [19] | Exec: ADD 0
+  Tick: 0574 | Pipeline Active
+  Tick: 0575 | PC: 0231 | Stk: [92] | Exec: LOAD 0
+  Tick: 0576 | Pipeline Active
+  Tick: 0577 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0578 | Pipeline Active
+  Tick: 0579 | PC: 0233 | Stk: [19] | Exec: PUSH_M 259
+  Tick: 0580 | PIPELINE STALL
+  Tick: 0581 | Pipeline Active
+  Tick: 0582 | PC: 0234 | Stk: [19, 1] | Exec: PUSH 1
+  Tick: 0583 | Pipeline Active
+  Tick: 0584 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0585 | PIPELINE STALL
+  Tick: 0586 | Pipeline Active [MemWrite: 259 <- 20]
+  Tick: 0587 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0588 | Pipeline Active
+  Tick: 0589 | PC: 0229 | Stk: [20] | Exec: PUSH_M 259
+  Tick: 0590 | PIPELINE STALL
+  Tick: 0591 | Pipeline Active
+  Tick: 0592 | PC: 022A | Stk: [20, 20] | Exec: PUSH_M 258
+  Tick: 0593 | PIPELINE STALL
+  Tick: 0594 | Pipeline Active
+  Tick: 0595 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0596 | Pipeline Active
+  Tick: 0597 | PC: 022E | Stk: [0] | Exec: PUSH_M 257
+  Tick: 0598 | PIPELINE STALL
+  Tick: 0599 | Pipeline Active
+  Tick: 0600 | PC: 022F | Stk: [0, 20] | Exec: PUSH_M 259
+  Tick: 0601 | PIPELINE STALL
+  Tick: 0602 | Pipeline Active
+  Tick: 0603 | PC: 0230 | Stk: [20] | Exec: ADD 0
+  Tick: 0604 | Pipeline Active
+  Tick: 0605 | PC: 0231 | Stk: [110] | Exec: LOAD 0
+  Tick: 0606 | Pipeline Active
+  Tick: 0607 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0608 | Pipeline Active
+  Tick: 0609 | PC: 0233 | Stk: [20] | Exec: PUSH_M 259
+  Tick: 0610 | PIPELINE STALL
+  Tick: 0611 | Pipeline Active
+  Tick: 0612 | PC: 0234 | Stk: [20, 1] | Exec: PUSH 1
+  Tick: 0613 | Pipeline Active
+  Tick: 0614 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0615 | PIPELINE STALL
+  Tick: 0616 | Pipeline Active [MemWrite: 259 <- 21]
+  Tick: 0617 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0618 | Pipeline Active
+  Tick: 0619 | PC: 0229 | Stk: [21] | Exec: PUSH_M 259
+  Tick: 0620 | PIPELINE STALL
+  Tick: 0621 | Pipeline Active
+  Tick: 0622 | PC: 022A | Stk: [21, 20] | Exec: PUSH_M 258
+  Tick: 0623 | PIPELINE STALL
+  Tick: 0624 | Pipeline Active
+  Tick: 0625 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0626 | Pipeline Active
+  Tick: 0627 | PC: 022D | Stk: [] | Exec: RET 0
+  Tick: 0628 | Pipeline Active
+  Tick: 0629 | PC: 0202 | Stk: [33] | Exec: PUSH 33
+  Tick: 0630 | Pipeline Active
+  Tick: 0631 | PC: 0203 | Stk: [33, 0] | Exec: PUSH 0
+  Tick: 0632 | Pipeline Active
+  Tick: 0633 | PC: 0204 | Stk: [] | Exec: STORE 0
+  Tick: 0634 | Pipeline Active
+  Tick: 0635 | PC: 0205 | Stk: [] | Exec: IN 0 || POP_M 256 (Superscalar) [MemWrite: 33 <- 0]
+  Tick: 0636 | PIPELINE STALL
+  Tick: 0637 | Pipeline Active [MemWrite: 256 <- 65]
+  Tick: 0638 | PC: 0207 | Stk: [65] | Exec: PUSH_M 256
+  Tick: 0639 | PIPELINE STALL
+  Tick: 0640 | Pipeline Active
+  Tick: 0641 | PC: 0208 | Stk: [] | Exec: JZ 540
+  Tick: 0642 | Pipeline Active
+  Tick: 0643 | PC: 0209 | Stk: [65] | Exec: PUSH_M 256
+  Tick: 0644 | PIPELINE STALL
+  Tick: 0645 | Pipeline Active
+  Tick: 0646 | PC: 020A | Stk: [65, 10] | Exec: PUSH 10
+  Tick: 0647 | Pipeline Active
+  Tick: 0648 | PC: 020B | Stk: [] | Exec: SUB 0 || JZ 540 (Superscalar)
+  Tick: 0649 | Pipeline Active
+  Tick: 0650 | PC: 020D | Stk: [33] | Exec: PUSH 33
+  Tick: 0651 | Pipeline Active
+  Tick: 0652 | PC: 020E | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0653 | Pipeline Active
+  Tick: 0654 | PC: 020F | Stk: [33, 0] | Exec: LOAD 0
+  Tick: 0655 | Pipeline Active
+  Tick: 0656 | PC: 0210 | Stk: [33] | Exec: ADD 0
+  Tick: 0657 | Pipeline Active
+  Tick: 0658 | PC: 0211 | Stk: [33, 1] | Exec: PUSH 1
+  Tick: 0659 | Pipeline Active
+  Tick: 0660 | PC: 0212 | Stk: [34] | Exec: ADD 0
+  Tick: 0661 | Pipeline Active
+  Tick: 0662 | PC: 0213 | Stk: [34, 65] | Exec: PUSH_M 256
+  Tick: 0663 | PIPELINE STALL
+  Tick: 0664 | Pipeline Active
+  Tick: 0665 | PC: 0214 | Stk: [] | Exec: STORE 0
+  Tick: 0666 | Pipeline Active
+  Tick: 0667 | PC: 0215 | Stk: [33] | Exec: PUSH 33 [MemWrite: 34 <- 65]
+  Tick: 0668 | Pipeline Active
+  Tick: 0669 | PC: 0216 | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0670 | Pipeline Active
+  Tick: 0671 | PC: 0217 | Stk: [33, 0] | Exec: LOAD 0
+  Tick: 0672 | Pipeline Active
+  Tick: 0673 | PC: 0218 | Stk: [33, 0, 1] | Exec: PUSH 1
+  Tick: 0674 | Pipeline Active
+  Tick: 0675 | PC: 0219 | Stk: [33, 1] | Exec: ADD 0
+  Tick: 0676 | Pipeline Active
+  Tick: 0677 | PC: 021A | Stk: [] | Exec: STORE 0
+  Tick: 0678 | Pipeline Active
+  Tick: 0679 | PC: 021B | Stk: [] | Exec: JMP 517 [MemWrite: 33 <- 1]
+  Tick: 0680 | Pipeline Active
+  Tick: 0681 | PC: 0205 | Stk: [] | Exec: IN 0 || POP_M 256 (Superscalar)
+  Tick: 0682 | PIPELINE STALL
+  Tick: 0683 | Pipeline Active [MemWrite: 256 <- 108]
+  Tick: 0684 | PC: 0207 | Stk: [108] | Exec: PUSH_M 256
+  Tick: 0685 | PIPELINE STALL
+  Tick: 0686 | Pipeline Active
+  Tick: 0687 | PC: 0208 | Stk: [] | Exec: JZ 540
+  Tick: 0688 | Pipeline Active
+  Tick: 0689 | PC: 0209 | Stk: [108] | Exec: PUSH_M 256
+  Tick: 0690 | PIPELINE STALL
+  Tick: 0691 | Pipeline Active
+  Tick: 0692 | PC: 020A | Stk: [108, 10] | Exec: PUSH 10
+  Tick: 0693 | Pipeline Active
+  Tick: 0694 | PC: 020B | Stk: [] | Exec: SUB 0 || JZ 540 (Superscalar)
+  Tick: 0695 | Pipeline Active
+  Tick: 0696 | PC: 020D | Stk: [33] | Exec: PUSH 33
+  Tick: 0697 | Pipeline Active
+  Tick: 0698 | PC: 020E | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0699 | Pipeline Active
+  Tick: 0700 | PC: 020F | Stk: [33, 1] | Exec: LOAD 0
+  Tick: 0701 | Pipeline Active
+  Tick: 0702 | PC: 0210 | Stk: [34] | Exec: ADD 0
+  Tick: 0703 | Pipeline Active
+  Tick: 0704 | PC: 0211 | Stk: [34, 1] | Exec: PUSH 1
+  Tick: 0705 | Pipeline Active
+  Tick: 0706 | PC: 0212 | Stk: [35] | Exec: ADD 0
+  Tick: 0707 | Pipeline Active
+  Tick: 0708 | PC: 0213 | Stk: [35, 108] | Exec: PUSH_M 256
+  Tick: 0709 | PIPELINE STALL
+  Tick: 0710 | Pipeline Active
+  Tick: 0711 | PC: 0214 | Stk: [] | Exec: STORE 0
+  Tick: 0712 | Pipeline Active
+  Tick: 0713 | PC: 0215 | Stk: [33] | Exec: PUSH 33 [MemWrite: 35 <- 108]
+  Tick: 0714 | Pipeline Active
+  Tick: 0715 | PC: 0216 | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0716 | Pipeline Active
+  Tick: 0717 | PC: 0217 | Stk: [33, 1] | Exec: LOAD 0
+  Tick: 0718 | Pipeline Active
+  Tick: 0719 | PC: 0218 | Stk: [33, 1, 1] | Exec: PUSH 1
+  Tick: 0720 | Pipeline Active
+  Tick: 0721 | PC: 0219 | Stk: [33, 2] | Exec: ADD 0
+  Tick: 0722 | Pipeline Active
+  Tick: 0723 | PC: 021A | Stk: [] | Exec: STORE 0
+  Tick: 0724 | Pipeline Active
+  Tick: 0725 | PC: 021B | Stk: [] | Exec: JMP 517 [MemWrite: 33 <- 2]
+  Tick: 0726 | Pipeline Active
+  Tick: 0727 | PC: 0205 | Stk: [] | Exec: IN 0 || POP_M 256 (Superscalar)
+  Tick: 0728 | PIPELINE STALL
+  Tick: 0729 | Pipeline Active [MemWrite: 256 <- 105]
+  Tick: 0730 | PC: 0207 | Stk: [105] | Exec: PUSH_M 256
+  Tick: 0731 | PIPELINE STALL
+  Tick: 0732 | Pipeline Active
+  Tick: 0733 | PC: 0208 | Stk: [] | Exec: JZ 540
+  Tick: 0734 | Pipeline Active
+  Tick: 0735 | PC: 0209 | Stk: [105] | Exec: PUSH_M 256
+  Tick: 0736 | PIPELINE STALL
+  Tick: 0737 | Pipeline Active
+  Tick: 0738 | PC: 020A | Stk: [105, 10] | Exec: PUSH 10
+  Tick: 0739 | Pipeline Active
+  Tick: 0740 | PC: 020B | Stk: [] | Exec: SUB 0 || JZ 540 (Superscalar)
+  Tick: 0741 | Pipeline Active
+  Tick: 0742 | PC: 020D | Stk: [33] | Exec: PUSH 33
+  Tick: 0743 | Pipeline Active
+  Tick: 0744 | PC: 020E | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0745 | Pipeline Active
+  Tick: 0746 | PC: 020F | Stk: [33, 2] | Exec: LOAD 0
+  Tick: 0747 | Pipeline Active
+  Tick: 0748 | PC: 0210 | Stk: [35] | Exec: ADD 0
+  Tick: 0749 | Pipeline Active
+  Tick: 0750 | PC: 0211 | Stk: [35, 1] | Exec: PUSH 1
+  Tick: 0751 | Pipeline Active
+  Tick: 0752 | PC: 0212 | Stk: [36] | Exec: ADD 0
+  Tick: 0753 | Pipeline Active
+  Tick: 0754 | PC: 0213 | Stk: [36, 105] | Exec: PUSH_M 256
+  Tick: 0755 | PIPELINE STALL
+  Tick: 0756 | Pipeline Active
+  Tick: 0757 | PC: 0214 | Stk: [] | Exec: STORE 0
+  Tick: 0758 | Pipeline Active
+  Tick: 0759 | PC: 0215 | Stk: [33] | Exec: PUSH 33 [MemWrite: 36 <- 105]
+  Tick: 0760 | Pipeline Active
+  Tick: 0761 | PC: 0216 | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0762 | Pipeline Active
+  Tick: 0763 | PC: 0217 | Stk: [33, 2] | Exec: LOAD 0
+  Tick: 0764 | Pipeline Active
+  Tick: 0765 | PC: 0218 | Stk: [33, 2, 1] | Exec: PUSH 1
+  Tick: 0766 | Pipeline Active
+  Tick: 0767 | PC: 0219 | Stk: [33, 3] | Exec: ADD 0
+  Tick: 0768 | Pipeline Active
+  Tick: 0769 | PC: 021A | Stk: [] | Exec: STORE 0
+  Tick: 0770 | Pipeline Active
+  Tick: 0771 | PC: 021B | Stk: [] | Exec: JMP 517 [MemWrite: 33 <- 3]
+  Tick: 0772 | Pipeline Active
+  Tick: 0773 | PC: 0205 | Stk: [] | Exec: IN 0 || POP_M 256 (Superscalar)
+  Tick: 0774 | PIPELINE STALL
+  Tick: 0775 | Pipeline Active [MemWrite: 256 <- 99]
+  Tick: 0776 | PC: 0207 | Stk: [99] | Exec: PUSH_M 256
+  Tick: 0777 | PIPELINE STALL
+  Tick: 0778 | Pipeline Active
+  Tick: 0779 | PC: 0208 | Stk: [] | Exec: JZ 540
+  Tick: 0780 | Pipeline Active
+  Tick: 0781 | PC: 0209 | Stk: [99] | Exec: PUSH_M 256
+  Tick: 0782 | PIPELINE STALL
+  Tick: 0783 | Pipeline Active
+  Tick: 0784 | PC: 020A | Stk: [99, 10] | Exec: PUSH 10
+  Tick: 0785 | Pipeline Active
+  Tick: 0786 | PC: 020B | Stk: [] | Exec: SUB 0 || JZ 540 (Superscalar)
+  Tick: 0787 | Pipeline Active
+  Tick: 0788 | PC: 020D | Stk: [33] | Exec: PUSH 33
+  Tick: 0789 | Pipeline Active
+  Tick: 0790 | PC: 020E | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0791 | Pipeline Active
+  Tick: 0792 | PC: 020F | Stk: [33, 3] | Exec: LOAD 0
+  Tick: 0793 | Pipeline Active
+  Tick: 0794 | PC: 0210 | Stk: [36] | Exec: ADD 0
+  Tick: 0795 | Pipeline Active
+  Tick: 0796 | PC: 0211 | Stk: [36, 1] | Exec: PUSH 1
+  Tick: 0797 | Pipeline Active
+  Tick: 0798 | PC: 0212 | Stk: [37] | Exec: ADD 0
+  Tick: 0799 | Pipeline Active
+  Tick: 0800 | PC: 0213 | Stk: [37, 99] | Exec: PUSH_M 256
+  Tick: 0801 | PIPELINE STALL
+  Tick: 0802 | Pipeline Active
+  Tick: 0803 | PC: 0214 | Stk: [] | Exec: STORE 0
+  Tick: 0804 | Pipeline Active
+  Tick: 0805 | PC: 0215 | Stk: [33] | Exec: PUSH 33 [MemWrite: 37 <- 99]
+  Tick: 0806 | Pipeline Active
+  Tick: 0807 | PC: 0216 | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0808 | Pipeline Active
+  Tick: 0809 | PC: 0217 | Stk: [33, 3] | Exec: LOAD 0
+  Tick: 0810 | Pipeline Active
+  Tick: 0811 | PC: 0218 | Stk: [33, 3, 1] | Exec: PUSH 1
+  Tick: 0812 | Pipeline Active
+  Tick: 0813 | PC: 0219 | Stk: [33, 4] | Exec: ADD 0
+  Tick: 0814 | Pipeline Active
+  Tick: 0815 | PC: 021A | Stk: [] | Exec: STORE 0
+  Tick: 0816 | Pipeline Active
+  Tick: 0817 | PC: 021B | Stk: [] | Exec: JMP 517 [MemWrite: 33 <- 4]
+  Tick: 0818 | Pipeline Active
+  Tick: 0819 | PC: 0205 | Stk: [] | Exec: IN 0 || POP_M 256 (Superscalar)
+  Tick: 0820 | PIPELINE STALL
+  Tick: 0821 | Pipeline Active [MemWrite: 256 <- 101]
+  Tick: 0822 | PC: 0207 | Stk: [101] | Exec: PUSH_M 256
+  Tick: 0823 | PIPELINE STALL
+  Tick: 0824 | Pipeline Active
+  Tick: 0825 | PC: 0208 | Stk: [] | Exec: JZ 540
+  Tick: 0826 | Pipeline Active
+  Tick: 0827 | PC: 0209 | Stk: [101] | Exec: PUSH_M 256
+  Tick: 0828 | PIPELINE STALL
+  Tick: 0829 | Pipeline Active
+  Tick: 0830 | PC: 020A | Stk: [101, 10] | Exec: PUSH 10
+  Tick: 0831 | Pipeline Active
+  Tick: 0832 | PC: 020B | Stk: [] | Exec: SUB 0 || JZ 540 (Superscalar)
+  Tick: 0833 | Pipeline Active
+  Tick: 0834 | PC: 020D | Stk: [33] | Exec: PUSH 33
+  Tick: 0835 | Pipeline Active
+  Tick: 0836 | PC: 020E | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0837 | Pipeline Active
+  Tick: 0838 | PC: 020F | Stk: [33, 4] | Exec: LOAD 0
+  Tick: 0839 | Pipeline Active
+  Tick: 0840 | PC: 0210 | Stk: [37] | Exec: ADD 0
+  Tick: 0841 | Pipeline Active
+  Tick: 0842 | PC: 0211 | Stk: [37, 1] | Exec: PUSH 1
+  Tick: 0843 | Pipeline Active
+  Tick: 0844 | PC: 0212 | Stk: [38] | Exec: ADD 0
+  Tick: 0845 | Pipeline Active
+  Tick: 0846 | PC: 0213 | Stk: [38, 101] | Exec: PUSH_M 256
+  Tick: 0847 | PIPELINE STALL
+  Tick: 0848 | Pipeline Active
+  Tick: 0849 | PC: 0214 | Stk: [] | Exec: STORE 0
+  Tick: 0850 | Pipeline Active
+  Tick: 0851 | PC: 0215 | Stk: [33] | Exec: PUSH 33 [MemWrite: 38 <- 101]
+  Tick: 0852 | Pipeline Active
+  Tick: 0853 | PC: 0216 | Stk: [33, 33] | Exec: PUSH 33
+  Tick: 0854 | Pipeline Active
+  Tick: 0855 | PC: 0217 | Stk: [33, 4] | Exec: LOAD 0
+  Tick: 0856 | Pipeline Active
+  Tick: 0857 | PC: 0218 | Stk: [33, 4, 1] | Exec: PUSH 1
+  Tick: 0858 | Pipeline Active
+  Tick: 0859 | PC: 0219 | Stk: [33, 5] | Exec: ADD 0
+  Tick: 0860 | Pipeline Active
+  Tick: 0861 | PC: 021A | Stk: [] | Exec: STORE 0
+  Tick: 0862 | Pipeline Active
+  Tick: 0863 | PC: 021B | Stk: [] | Exec: JMP 517 [MemWrite: 33 <- 5]
+  Tick: 0864 | Pipeline Active
+  Tick: 0865 | PC: 0205 | Stk: [] | Exec: IN 0 || POP_M 256 (Superscalar)
+  Tick: 0866 | PIPELINE STALL
+  Tick: 0867 | Pipeline Active [MemWrite: 256 <- 10]
+  Tick: 0868 | PC: 0207 | Stk: [10] | Exec: PUSH_M 256
+  Tick: 0869 | PIPELINE STALL
+  Tick: 0870 | Pipeline Active
+  Tick: 0871 | PC: 0208 | Stk: [] | Exec: JZ 540
+  Tick: 0872 | Pipeline Active
+  Tick: 0873 | PC: 0209 | Stk: [10] | Exec: PUSH_M 256
+  Tick: 0874 | PIPELINE STALL
+  Tick: 0875 | Pipeline Active
+  Tick: 0876 | PC: 020A | Stk: [10, 10] | Exec: PUSH 10
+  Tick: 0877 | Pipeline Active
+  Tick: 0878 | PC: 020B | Stk: [] | Exec: SUB 0 || JZ 540 (Superscalar)
+  Tick: 0879 | Pipeline Active
+  Tick: 0880 | PC: 021C | Stk: [21] | Exec: PUSH 21
+  Tick: 0881 | Pipeline Active
+  Tick: 0882 | PC: 021D | Stk: [21] | Exec: CALL 547
+  Tick: 0883 | Pipeline Active
+  Tick: 0884 | PC: 0223 | Stk: [] | Exec: POP_M 257
+  Tick: 0885 | PIPELINE STALL
+  Tick: 0886 | Pipeline Active [MemWrite: 257 <- 21]
+  Tick: 0887 | PC: 0224 | Stk: [21] | Exec: PUSH_M 257
+  Tick: 0888 | PIPELINE STALL
+  Tick: 0889 | Pipeline Active
+  Tick: 0890 | PC: 0225 | Stk: [7] | Exec: LOAD 0
+  Tick: 0891 | Pipeline Active
+  Tick: 0892 | PC: 0226 | Stk: [] | Exec: POP_M 258
+  Tick: 0893 | PIPELINE STALL
+  Tick: 0894 | Pipeline Active [MemWrite: 258 <- 7]
+  Tick: 0895 | PC: 0227 | Stk: [] | Exec: PUSH 1 || POP_M 259 (Superscalar)
+  Tick: 0896 | PIPELINE STALL
+  Tick: 0897 | Pipeline Active [MemWrite: 259 <- 1]
+  Tick: 0898 | PC: 0229 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 0899 | PIPELINE STALL
+  Tick: 0900 | Pipeline Active
+  Tick: 0901 | PC: 022A | Stk: [1, 7] | Exec: PUSH_M 258
+  Tick: 0902 | PIPELINE STALL
+  Tick: 0903 | Pipeline Active
+  Tick: 0904 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0905 | Pipeline Active
+  Tick: 0906 | PC: 022E | Stk: [21] | Exec: PUSH_M 257
+  Tick: 0907 | PIPELINE STALL
+  Tick: 0908 | Pipeline Active
+  Tick: 0909 | PC: 022F | Stk: [21, 1] | Exec: PUSH_M 259
+  Tick: 0910 | PIPELINE STALL
+  Tick: 0911 | Pipeline Active
+  Tick: 0912 | PC: 0230 | Stk: [22] | Exec: ADD 0
+  Tick: 0913 | Pipeline Active
+  Tick: 0914 | PC: 0231 | Stk: [72] | Exec: LOAD 0
+  Tick: 0915 | Pipeline Active
+  Tick: 0916 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0917 | Pipeline Active
+  Tick: 0918 | PC: 0233 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 0919 | PIPELINE STALL
+  Tick: 0920 | Pipeline Active
+  Tick: 0921 | PC: 0234 | Stk: [1, 1] | Exec: PUSH 1
+  Tick: 0922 | Pipeline Active
+  Tick: 0923 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0924 | PIPELINE STALL
+  Tick: 0925 | Pipeline Active [MemWrite: 259 <- 2]
+  Tick: 0926 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0927 | Pipeline Active
+  Tick: 0928 | PC: 0229 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 0929 | PIPELINE STALL
+  Tick: 0930 | Pipeline Active
+  Tick: 0931 | PC: 022A | Stk: [2, 7] | Exec: PUSH_M 258
+  Tick: 0932 | PIPELINE STALL
+  Tick: 0933 | Pipeline Active
+  Tick: 0934 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0935 | Pipeline Active
+  Tick: 0936 | PC: 022E | Stk: [21] | Exec: PUSH_M 257
+  Tick: 0937 | PIPELINE STALL
+  Tick: 0938 | Pipeline Active
+  Tick: 0939 | PC: 022F | Stk: [21, 2] | Exec: PUSH_M 259
+  Tick: 0940 | PIPELINE STALL
+  Tick: 0941 | Pipeline Active
+  Tick: 0942 | PC: 0230 | Stk: [23] | Exec: ADD 0
+  Tick: 0943 | Pipeline Active
+  Tick: 0944 | PC: 0231 | Stk: [101] | Exec: LOAD 0
+  Tick: 0945 | Pipeline Active
+  Tick: 0946 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0947 | Pipeline Active
+  Tick: 0948 | PC: 0233 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 0949 | PIPELINE STALL
+  Tick: 0950 | Pipeline Active
+  Tick: 0951 | PC: 0234 | Stk: [2, 1] | Exec: PUSH 1
+  Tick: 0952 | Pipeline Active
+  Tick: 0953 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0954 | PIPELINE STALL
+  Tick: 0955 | Pipeline Active [MemWrite: 259 <- 3]
+  Tick: 0956 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0957 | Pipeline Active
+  Tick: 0958 | PC: 0229 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 0959 | PIPELINE STALL
+  Tick: 0960 | Pipeline Active
+  Tick: 0961 | PC: 022A | Stk: [3, 7] | Exec: PUSH_M 258
+  Tick: 0962 | PIPELINE STALL
+  Tick: 0963 | Pipeline Active
+  Tick: 0964 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0965 | Pipeline Active
+  Tick: 0966 | PC: 022E | Stk: [21] | Exec: PUSH_M 257
+  Tick: 0967 | PIPELINE STALL
+  Tick: 0968 | Pipeline Active
+  Tick: 0969 | PC: 022F | Stk: [21, 3] | Exec: PUSH_M 259
+  Tick: 0970 | PIPELINE STALL
+  Tick: 0971 | Pipeline Active
+  Tick: 0972 | PC: 0230 | Stk: [24] | Exec: ADD 0
+  Tick: 0973 | Pipeline Active
+  Tick: 0974 | PC: 0231 | Stk: [108] | Exec: LOAD 0
+  Tick: 0975 | Pipeline Active
+  Tick: 0976 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 0977 | Pipeline Active
+  Tick: 0978 | PC: 0233 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 0979 | PIPELINE STALL
+  Tick: 0980 | Pipeline Active
+  Tick: 0981 | PC: 0234 | Stk: [3, 1] | Exec: PUSH 1
+  Tick: 0982 | Pipeline Active
+  Tick: 0983 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 0984 | PIPELINE STALL
+  Tick: 0985 | Pipeline Active [MemWrite: 259 <- 4]
+  Tick: 0986 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 0987 | Pipeline Active
+  Tick: 0988 | PC: 0229 | Stk: [4] | Exec: PUSH_M 259
+  Tick: 0989 | PIPELINE STALL
+  Tick: 0990 | Pipeline Active
+  Tick: 0991 | PC: 022A | Stk: [4, 7] | Exec: PUSH_M 258
+  Tick: 0992 | PIPELINE STALL
+  Tick: 0993 | Pipeline Active
+  Tick: 0994 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 0995 | Pipeline Active
+  Tick: 0996 | PC: 022E | Stk: [21] | Exec: PUSH_M 257
+  Tick: 0997 | PIPELINE STALL
+  Tick: 0998 | Pipeline Active
+  Tick: 0999 | PC: 022F | Stk: [21, 4] | Exec: PUSH_M 259
+  Tick: 1000 | PIPELINE STALL
+  Tick: 1001 | Pipeline Active
+  Tick: 1002 | PC: 0230 | Stk: [25] | Exec: ADD 0
+  Tick: 1003 | Pipeline Active
+  Tick: 1004 | PC: 0231 | Stk: [108] | Exec: LOAD 0
+  Tick: 1005 | Pipeline Active
+  Tick: 1006 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1007 | Pipeline Active
+  Tick: 1008 | PC: 0233 | Stk: [4] | Exec: PUSH_M 259
+  Tick: 1009 | PIPELINE STALL
+  Tick: 1010 | Pipeline Active
+  Tick: 1011 | PC: 0234 | Stk: [4, 1] | Exec: PUSH 1
+  Tick: 1012 | Pipeline Active
+  Tick: 1013 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1014 | PIPELINE STALL
+  Tick: 1015 | Pipeline Active [MemWrite: 259 <- 5]
+  Tick: 1016 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1017 | Pipeline Active
+  Tick: 1018 | PC: 0229 | Stk: [5] | Exec: PUSH_M 259
+  Tick: 1019 | PIPELINE STALL
+  Tick: 1020 | Pipeline Active
+  Tick: 1021 | PC: 022A | Stk: [5, 7] | Exec: PUSH_M 258
+  Tick: 1022 | PIPELINE STALL
+  Tick: 1023 | Pipeline Active
+  Tick: 1024 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1025 | Pipeline Active
+  Tick: 1026 | PC: 022E | Stk: [21] | Exec: PUSH_M 257
+  Tick: 1027 | PIPELINE STALL
+  Tick: 1028 | Pipeline Active
+  Tick: 1029 | PC: 022F | Stk: [21, 5] | Exec: PUSH_M 259
+  Tick: 1030 | PIPELINE STALL
+  Tick: 1031 | Pipeline Active
+  Tick: 1032 | PC: 0230 | Stk: [26] | Exec: ADD 0
+  Tick: 1033 | Pipeline Active
+  Tick: 1034 | PC: 0231 | Stk: [111] | Exec: LOAD 0
+  Tick: 1035 | Pipeline Active
+  Tick: 1036 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1037 | Pipeline Active
+  Tick: 1038 | PC: 0233 | Stk: [5] | Exec: PUSH_M 259
+  Tick: 1039 | PIPELINE STALL
+  Tick: 1040 | Pipeline Active
+  Tick: 1041 | PC: 0234 | Stk: [5, 1] | Exec: PUSH 1
+  Tick: 1042 | Pipeline Active
+  Tick: 1043 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1044 | PIPELINE STALL
+  Tick: 1045 | Pipeline Active [MemWrite: 259 <- 6]
+  Tick: 1046 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1047 | Pipeline Active
+  Tick: 1048 | PC: 0229 | Stk: [6] | Exec: PUSH_M 259
+  Tick: 1049 | PIPELINE STALL
+  Tick: 1050 | Pipeline Active
+  Tick: 1051 | PC: 022A | Stk: [6, 7] | Exec: PUSH_M 258
+  Tick: 1052 | PIPELINE STALL
+  Tick: 1053 | Pipeline Active
+  Tick: 1054 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1055 | Pipeline Active
+  Tick: 1056 | PC: 022E | Stk: [21] | Exec: PUSH_M 257
+  Tick: 1057 | PIPELINE STALL
+  Tick: 1058 | Pipeline Active
+  Tick: 1059 | PC: 022F | Stk: [21, 6] | Exec: PUSH_M 259
+  Tick: 1060 | PIPELINE STALL
+  Tick: 1061 | Pipeline Active
+  Tick: 1062 | PC: 0230 | Stk: [27] | Exec: ADD 0
+  Tick: 1063 | Pipeline Active
+  Tick: 1064 | PC: 0231 | Stk: [44] | Exec: LOAD 0
+  Tick: 1065 | Pipeline Active
+  Tick: 1066 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1067 | Pipeline Active
+  Tick: 1068 | PC: 0233 | Stk: [6] | Exec: PUSH_M 259
+  Tick: 1069 | PIPELINE STALL
+  Tick: 1070 | Pipeline Active
+  Tick: 1071 | PC: 0234 | Stk: [6, 1] | Exec: PUSH 1
+  Tick: 1072 | Pipeline Active
+  Tick: 1073 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1074 | PIPELINE STALL
+  Tick: 1075 | Pipeline Active [MemWrite: 259 <- 7]
+  Tick: 1076 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1077 | Pipeline Active
+  Tick: 1078 | PC: 0229 | Stk: [7] | Exec: PUSH_M 259
+  Tick: 1079 | PIPELINE STALL
+  Tick: 1080 | Pipeline Active
+  Tick: 1081 | PC: 022A | Stk: [7, 7] | Exec: PUSH_M 258
+  Tick: 1082 | PIPELINE STALL
+  Tick: 1083 | Pipeline Active
+  Tick: 1084 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1085 | Pipeline Active
+  Tick: 1086 | PC: 022E | Stk: [21] | Exec: PUSH_M 257
+  Tick: 1087 | PIPELINE STALL
+  Tick: 1088 | Pipeline Active
+  Tick: 1089 | PC: 022F | Stk: [21, 7] | Exec: PUSH_M 259
+  Tick: 1090 | PIPELINE STALL
+  Tick: 1091 | Pipeline Active
+  Tick: 1092 | PC: 0230 | Stk: [28] | Exec: ADD 0
+  Tick: 1093 | Pipeline Active
+  Tick: 1094 | PC: 0231 | Stk: [32] | Exec: LOAD 0
+  Tick: 1095 | Pipeline Active
+  Tick: 1096 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1097 | Pipeline Active
+  Tick: 1098 | PC: 0233 | Stk: [7] | Exec: PUSH_M 259
+  Tick: 1099 | PIPELINE STALL
+  Tick: 1100 | Pipeline Active
+  Tick: 1101 | PC: 0234 | Stk: [7, 1] | Exec: PUSH 1
+  Tick: 1102 | Pipeline Active
+  Tick: 1103 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1104 | PIPELINE STALL
+  Tick: 1105 | Pipeline Active [MemWrite: 259 <- 8]
+  Tick: 1106 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1107 | Pipeline Active
+  Tick: 1108 | PC: 0229 | Stk: [8] | Exec: PUSH_M 259
+  Tick: 1109 | PIPELINE STALL
+  Tick: 1110 | Pipeline Active
+  Tick: 1111 | PC: 022A | Stk: [8, 7] | Exec: PUSH_M 258
+  Tick: 1112 | PIPELINE STALL
+  Tick: 1113 | Pipeline Active
+  Tick: 1114 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1115 | Pipeline Active
+  Tick: 1116 | PC: 022D | Stk: [] | Exec: RET 0
+  Tick: 1117 | Pipeline Active
+  Tick: 1118 | PC: 021E | Stk: [33] | Exec: PUSH 33
+  Tick: 1119 | Pipeline Active
+  Tick: 1120 | PC: 021F | Stk: [33] | Exec: CALL 547
+  Tick: 1121 | Pipeline Active
+  Tick: 1122 | PC: 0223 | Stk: [] | Exec: POP_M 257
+  Tick: 1123 | PIPELINE STALL
+  Tick: 1124 | Pipeline Active [MemWrite: 257 <- 33]
+  Tick: 1125 | PC: 0224 | Stk: [33] | Exec: PUSH_M 257
+  Tick: 1126 | PIPELINE STALL
+  Tick: 1127 | Pipeline Active
+  Tick: 1128 | PC: 0225 | Stk: [5] | Exec: LOAD 0
+  Tick: 1129 | Pipeline Active
+  Tick: 1130 | PC: 0226 | Stk: [] | Exec: POP_M 258
+  Tick: 1131 | PIPELINE STALL
+  Tick: 1132 | Pipeline Active [MemWrite: 258 <- 5]
+  Tick: 1133 | PC: 0227 | Stk: [] | Exec: PUSH 1 || POP_M 259 (Superscalar)
+  Tick: 1134 | PIPELINE STALL
+  Tick: 1135 | Pipeline Active [MemWrite: 259 <- 1]
+  Tick: 1136 | PC: 0229 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 1137 | PIPELINE STALL
+  Tick: 1138 | Pipeline Active
+  Tick: 1139 | PC: 022A | Stk: [1, 5] | Exec: PUSH_M 258
+  Tick: 1140 | PIPELINE STALL
+  Tick: 1141 | Pipeline Active
+  Tick: 1142 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1143 | Pipeline Active
+  Tick: 1144 | PC: 022E | Stk: [33] | Exec: PUSH_M 257
+  Tick: 1145 | PIPELINE STALL
+  Tick: 1146 | Pipeline Active
+  Tick: 1147 | PC: 022F | Stk: [33, 1] | Exec: PUSH_M 259
+  Tick: 1148 | PIPELINE STALL
+  Tick: 1149 | Pipeline Active
+  Tick: 1150 | PC: 0230 | Stk: [34] | Exec: ADD 0
+  Tick: 1151 | Pipeline Active
+  Tick: 1152 | PC: 0231 | Stk: [65] | Exec: LOAD 0
+  Tick: 1153 | Pipeline Active
+  Tick: 1154 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1155 | Pipeline Active
+  Tick: 1156 | PC: 0233 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 1157 | PIPELINE STALL
+  Tick: 1158 | Pipeline Active
+  Tick: 1159 | PC: 0234 | Stk: [1, 1] | Exec: PUSH 1
+  Tick: 1160 | Pipeline Active
+  Tick: 1161 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1162 | PIPELINE STALL
+  Tick: 1163 | Pipeline Active [MemWrite: 259 <- 2]
+  Tick: 1164 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1165 | Pipeline Active
+  Tick: 1166 | PC: 0229 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 1167 | PIPELINE STALL
+  Tick: 1168 | Pipeline Active
+  Tick: 1169 | PC: 022A | Stk: [2, 5] | Exec: PUSH_M 258
+  Tick: 1170 | PIPELINE STALL
+  Tick: 1171 | Pipeline Active
+  Tick: 1172 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1173 | Pipeline Active
+  Tick: 1174 | PC: 022E | Stk: [33] | Exec: PUSH_M 257
+  Tick: 1175 | PIPELINE STALL
+  Tick: 1176 | Pipeline Active
+  Tick: 1177 | PC: 022F | Stk: [33, 2] | Exec: PUSH_M 259
+  Tick: 1178 | PIPELINE STALL
+  Tick: 1179 | Pipeline Active
+  Tick: 1180 | PC: 0230 | Stk: [35] | Exec: ADD 0
+  Tick: 1181 | Pipeline Active
+  Tick: 1182 | PC: 0231 | Stk: [108] | Exec: LOAD 0
+  Tick: 1183 | Pipeline Active
+  Tick: 1184 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1185 | Pipeline Active
+  Tick: 1186 | PC: 0233 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 1187 | PIPELINE STALL
+  Tick: 1188 | Pipeline Active
+  Tick: 1189 | PC: 0234 | Stk: [2, 1] | Exec: PUSH 1
+  Tick: 1190 | Pipeline Active
+  Tick: 1191 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1192 | PIPELINE STALL
+  Tick: 1193 | Pipeline Active [MemWrite: 259 <- 3]
+  Tick: 1194 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1195 | Pipeline Active
+  Tick: 1196 | PC: 0229 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 1197 | PIPELINE STALL
+  Tick: 1198 | Pipeline Active
+  Tick: 1199 | PC: 022A | Stk: [3, 5] | Exec: PUSH_M 258
+  Tick: 1200 | PIPELINE STALL
+  Tick: 1201 | Pipeline Active
+  Tick: 1202 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1203 | Pipeline Active
+  Tick: 1204 | PC: 022E | Stk: [33] | Exec: PUSH_M 257
+  Tick: 1205 | PIPELINE STALL
+  Tick: 1206 | Pipeline Active
+  Tick: 1207 | PC: 022F | Stk: [33, 3] | Exec: PUSH_M 259
+  Tick: 1208 | PIPELINE STALL
+  Tick: 1209 | Pipeline Active
+  Tick: 1210 | PC: 0230 | Stk: [36] | Exec: ADD 0
+  Tick: 1211 | Pipeline Active
+  Tick: 1212 | PC: 0231 | Stk: [105] | Exec: LOAD 0
+  Tick: 1213 | Pipeline Active
+  Tick: 1214 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1215 | Pipeline Active
+  Tick: 1216 | PC: 0233 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 1217 | PIPELINE STALL
+  Tick: 1218 | Pipeline Active
+  Tick: 1219 | PC: 0234 | Stk: [3, 1] | Exec: PUSH 1
+  Tick: 1220 | Pipeline Active
+  Tick: 1221 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1222 | PIPELINE STALL
+  Tick: 1223 | Pipeline Active [MemWrite: 259 <- 4]
+  Tick: 1224 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1225 | Pipeline Active
+  Tick: 1226 | PC: 0229 | Stk: [4] | Exec: PUSH_M 259
+  Tick: 1227 | PIPELINE STALL
+  Tick: 1228 | Pipeline Active
+  Tick: 1229 | PC: 022A | Stk: [4, 5] | Exec: PUSH_M 258
+  Tick: 1230 | PIPELINE STALL
+  Tick: 1231 | Pipeline Active
+  Tick: 1232 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1233 | Pipeline Active
+  Tick: 1234 | PC: 022E | Stk: [33] | Exec: PUSH_M 257
+  Tick: 1235 | PIPELINE STALL
+  Tick: 1236 | Pipeline Active
+  Tick: 1237 | PC: 022F | Stk: [33, 4] | Exec: PUSH_M 259
+  Tick: 1238 | PIPELINE STALL
+  Tick: 1239 | Pipeline Active
+  Tick: 1240 | PC: 0230 | Stk: [37] | Exec: ADD 0
+  Tick: 1241 | Pipeline Active
+  Tick: 1242 | PC: 0231 | Stk: [99] | Exec: LOAD 0
+  Tick: 1243 | Pipeline Active
+  Tick: 1244 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1245 | Pipeline Active
+  Tick: 1246 | PC: 0233 | Stk: [4] | Exec: PUSH_M 259
+  Tick: 1247 | PIPELINE STALL
+  Tick: 1248 | Pipeline Active
+  Tick: 1249 | PC: 0234 | Stk: [4, 1] | Exec: PUSH 1
+  Tick: 1250 | Pipeline Active
+  Tick: 1251 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1252 | PIPELINE STALL
+  Tick: 1253 | Pipeline Active [MemWrite: 259 <- 5]
+  Tick: 1254 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1255 | Pipeline Active
+  Tick: 1256 | PC: 0229 | Stk: [5] | Exec: PUSH_M 259
+  Tick: 1257 | PIPELINE STALL
+  Tick: 1258 | Pipeline Active
+  Tick: 1259 | PC: 022A | Stk: [5, 5] | Exec: PUSH_M 258
+  Tick: 1260 | PIPELINE STALL
+  Tick: 1261 | Pipeline Active
+  Tick: 1262 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1263 | Pipeline Active
+  Tick: 1264 | PC: 022E | Stk: [33] | Exec: PUSH_M 257
+  Tick: 1265 | PIPELINE STALL
+  Tick: 1266 | Pipeline Active
+  Tick: 1267 | PC: 022F | Stk: [33, 5] | Exec: PUSH_M 259
+  Tick: 1268 | PIPELINE STALL
+  Tick: 1269 | Pipeline Active
+  Tick: 1270 | PC: 0230 | Stk: [38] | Exec: ADD 0
+  Tick: 1271 | Pipeline Active
+  Tick: 1272 | PC: 0231 | Stk: [101] | Exec: LOAD 0
+  Tick: 1273 | Pipeline Active
+  Tick: 1274 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1275 | Pipeline Active
+  Tick: 1276 | PC: 0233 | Stk: [5] | Exec: PUSH_M 259
+  Tick: 1277 | PIPELINE STALL
+  Tick: 1278 | Pipeline Active
+  Tick: 1279 | PC: 0234 | Stk: [5, 1] | Exec: PUSH 1
+  Tick: 1280 | Pipeline Active
+  Tick: 1281 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1282 | PIPELINE STALL
+  Tick: 1283 | Pipeline Active [MemWrite: 259 <- 6]
+  Tick: 1284 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1285 | Pipeline Active
+  Tick: 1286 | PC: 0229 | Stk: [6] | Exec: PUSH_M 259
+  Tick: 1287 | PIPELINE STALL
+  Tick: 1288 | Pipeline Active
+  Tick: 1289 | PC: 022A | Stk: [6, 5] | Exec: PUSH_M 258
+  Tick: 1290 | PIPELINE STALL
+  Tick: 1291 | Pipeline Active
+  Tick: 1292 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1293 | Pipeline Active
+  Tick: 1294 | PC: 022D | Stk: [] | Exec: RET 0
+  Tick: 1295 | Pipeline Active
+  Tick: 1296 | PC: 0220 | Stk: [29] | Exec: PUSH 29
+  Tick: 1297 | Pipeline Active
+  Tick: 1298 | PC: 0221 | Stk: [29] | Exec: CALL 547
+  Tick: 1299 | Pipeline Active
+  Tick: 1300 | PC: 0223 | Stk: [] | Exec: POP_M 257
+  Tick: 1301 | PIPELINE STALL
+  Tick: 1302 | Pipeline Active [MemWrite: 257 <- 29]
+  Tick: 1303 | PC: 0224 | Stk: [29] | Exec: PUSH_M 257
+  Tick: 1304 | PIPELINE STALL
+  Tick: 1305 | Pipeline Active
+  Tick: 1306 | PC: 0225 | Stk: [3] | Exec: LOAD 0
+  Tick: 1307 | Pipeline Active
+  Tick: 1308 | PC: 0226 | Stk: [] | Exec: POP_M 258
+  Tick: 1309 | PIPELINE STALL
+  Tick: 1310 | Pipeline Active [MemWrite: 258 <- 3]
+  Tick: 1311 | PC: 0227 | Stk: [] | Exec: PUSH 1 || POP_M 259 (Superscalar)
+  Tick: 1312 | PIPELINE STALL
+  Tick: 1313 | Pipeline Active [MemWrite: 259 <- 1]
+  Tick: 1314 | PC: 0229 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 1315 | PIPELINE STALL
+  Tick: 1316 | Pipeline Active
+  Tick: 1317 | PC: 022A | Stk: [1, 3] | Exec: PUSH_M 258
+  Tick: 1318 | PIPELINE STALL
+  Tick: 1319 | Pipeline Active
+  Tick: 1320 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1321 | Pipeline Active
+  Tick: 1322 | PC: 022E | Stk: [29] | Exec: PUSH_M 257
+  Tick: 1323 | PIPELINE STALL
+  Tick: 1324 | Pipeline Active
+  Tick: 1325 | PC: 022F | Stk: [29, 1] | Exec: PUSH_M 259
+  Tick: 1326 | PIPELINE STALL
+  Tick: 1327 | Pipeline Active
+  Tick: 1328 | PC: 0230 | Stk: [30] | Exec: ADD 0
+  Tick: 1329 | Pipeline Active
+  Tick: 1330 | PC: 0231 | Stk: [33] | Exec: LOAD 0
+  Tick: 1331 | Pipeline Active
+  Tick: 1332 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1333 | Pipeline Active
+  Tick: 1334 | PC: 0233 | Stk: [1] | Exec: PUSH_M 259
+  Tick: 1335 | PIPELINE STALL
+  Tick: 1336 | Pipeline Active
+  Tick: 1337 | PC: 0234 | Stk: [1, 1] | Exec: PUSH 1
+  Tick: 1338 | Pipeline Active
+  Tick: 1339 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1340 | PIPELINE STALL
+  Tick: 1341 | Pipeline Active [MemWrite: 259 <- 2]
+  Tick: 1342 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1343 | Pipeline Active
+  Tick: 1344 | PC: 0229 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 1345 | PIPELINE STALL
+  Tick: 1346 | Pipeline Active
+  Tick: 1347 | PC: 022A | Stk: [2, 3] | Exec: PUSH_M 258
+  Tick: 1348 | PIPELINE STALL
+  Tick: 1349 | Pipeline Active
+  Tick: 1350 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1351 | Pipeline Active
+  Tick: 1352 | PC: 022E | Stk: [29] | Exec: PUSH_M 257
+  Tick: 1353 | PIPELINE STALL
+  Tick: 1354 | Pipeline Active
+  Tick: 1355 | PC: 022F | Stk: [29, 2] | Exec: PUSH_M 259
+  Tick: 1356 | PIPELINE STALL
+  Tick: 1357 | Pipeline Active
+  Tick: 1358 | PC: 0230 | Stk: [31] | Exec: ADD 0
+  Tick: 1359 | Pipeline Active
+  Tick: 1360 | PC: 0231 | Stk: [92] | Exec: LOAD 0
+  Tick: 1361 | Pipeline Active
+  Tick: 1362 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1363 | Pipeline Active
+  Tick: 1364 | PC: 0233 | Stk: [2] | Exec: PUSH_M 259
+  Tick: 1365 | PIPELINE STALL
+  Tick: 1366 | Pipeline Active
+  Tick: 1367 | PC: 0234 | Stk: [2, 1] | Exec: PUSH 1
+  Tick: 1368 | Pipeline Active
+  Tick: 1369 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1370 | PIPELINE STALL
+  Tick: 1371 | Pipeline Active [MemWrite: 259 <- 3]
+  Tick: 1372 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1373 | Pipeline Active
+  Tick: 1374 | PC: 0229 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 1375 | PIPELINE STALL
+  Tick: 1376 | Pipeline Active
+  Tick: 1377 | PC: 022A | Stk: [3, 3] | Exec: PUSH_M 258
+  Tick: 1378 | PIPELINE STALL
+  Tick: 1379 | Pipeline Active
+  Tick: 1380 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1381 | Pipeline Active
+  Tick: 1382 | PC: 022E | Stk: [29] | Exec: PUSH_M 257
+  Tick: 1383 | PIPELINE STALL
+  Tick: 1384 | Pipeline Active
+  Tick: 1385 | PC: 022F | Stk: [29, 3] | Exec: PUSH_M 259
+  Tick: 1386 | PIPELINE STALL
+  Tick: 1387 | Pipeline Active
+  Tick: 1388 | PC: 0230 | Stk: [32] | Exec: ADD 0
+  Tick: 1389 | Pipeline Active
+  Tick: 1390 | PC: 0231 | Stk: [110] | Exec: LOAD 0
+  Tick: 1391 | Pipeline Active
+  Tick: 1392 | PC: 0232 | Stk: [] | Exec: OUT 1
+  Tick: 1393 | Pipeline Active
+  Tick: 1394 | PC: 0233 | Stk: [3] | Exec: PUSH_M 259
+  Tick: 1395 | PIPELINE STALL
+  Tick: 1396 | Pipeline Active
+  Tick: 1397 | PC: 0234 | Stk: [3, 1] | Exec: PUSH 1
+  Tick: 1398 | Pipeline Active
+  Tick: 1399 | PC: 0235 | Stk: [] | Exec: ADD 0 || POP_M 259 (Superscalar)
+  Tick: 1400 | PIPELINE STALL
+  Tick: 1401 | Pipeline Active [MemWrite: 259 <- 4]
+  Tick: 1402 | PC: 0237 | Stk: [] | Exec: JMP 553
+  Tick: 1403 | Pipeline Active
+  Tick: 1404 | PC: 0229 | Stk: [4] | Exec: PUSH_M 259
+  Tick: 1405 | PIPELINE STALL
+  Tick: 1406 | Pipeline Active
+  Tick: 1407 | PC: 022A | Stk: [4, 3] | Exec: PUSH_M 258
+  Tick: 1408 | PIPELINE STALL
+  Tick: 1409 | Pipeline Active
+  Tick: 1410 | PC: 022B | Stk: [] | Exec: GT 0 || JZ 558 (Superscalar)
+  Tick: 1411 | Pipeline Active
+  Tick: 1412 | PC: 022D | Stk: [] | Exec: RET 0
+  Tick: 1413 | Pipeline Active
+  Tick: 1414 | PC: 0222 | Stk: [] | Exec: HALT 0
+  Total Ticks: 1414
+  Instructions Executed: 669
+  Output: What is your name?\nHello, Alice!\n
+out_code_log: |-
+  0200 - 01000000 - PUSH prompt_str
+  0201 - 0A000223 - CALL print_pstr
+  0202 - 01000021 - PUSH name_buf
+  0203 - 01000000 - PUSH 0
+  0204 - 15000000 - STORE 0
+  0205 - 0C000000 - IN 0
+  0206 - 03000100 - POP_M char
+  0207 - 02000100 - PUSH_M char
+  0208 - 0900021C - JZ print_hello
+  0209 - 02000100 - PUSH_M char
+  020A - 0100000A - PUSH 10
+  020B - 05000000 - SUB 0
+  020C - 0900021C - JZ print_hello
+  020D - 01000021 - PUSH name_buf
+  020E - 01000021 - PUSH name_buf
+  020F - 14000000 - LOAD 0
+  0210 - 04000000 - ADD 0
+  0211 - 01000001 - PUSH 1
+  0212 - 04000000 - ADD 0
+  0213 - 02000100 - PUSH_M char
+  0214 - 15000000 - STORE 0
+  0215 - 01000021 - PUSH name_buf
+  0216 - 01000021 - PUSH name_buf
+  0217 - 14000000 - LOAD 0
+  0218 - 01000001 - PUSH 1
+  0219 - 04000000 - ADD 0
+  021A - 15000000 - STORE 0
+  021B - 08000205 - JMP read_loop
+  021C - 01000015 - PUSH hello_str
+  021D - 0A000223 - CALL print_pstr
+  021E - 01000021 - PUSH name_buf
+  021F - 0A000223 - CALL print_pstr
+  0220 - 0100001D - PUSH excl_str
+  0221 - 0A000223 - CALL print_pstr
+  0222 - 0F000000 - HALT 0
+  0223 - 03000101 - POP_M pstr_ptr
+  0224 - 02000101 - PUSH_M pstr_ptr
+  0225 - 14000000 - LOAD 0
+  0226 - 03000102 - POP_M pstr_len
+  0227 - 01000001 - PUSH 1
+  0228 - 03000103 - POP_M pstr_idx
+  0229 - 02000103 - PUSH_M pstr_idx
+  022A - 02000102 - PUSH_M pstr_len
+  022B - 13000000 - GT 0
+  022C - 0900022E - JZ print_char
+  022D - 0B000000 - RET 0
+  022E - 02000101 - PUSH_M pstr_ptr
+  022F - 02000103 - PUSH_M pstr_idx
+  0230 - 04000000 - ADD 0
+  0231 - 14000000 - LOAD 0
+  0232 - 0D000001 - OUT 1
+  0233 - 02000103 - PUSH_M pstr_idx
+  0234 - 01000001 - PUSH 1
+  0235 - 04000000 - ADD 0
+  0236 - 03000103 - POP_M pstr_idx
+  0237 - 08000229 - JMP print_loop

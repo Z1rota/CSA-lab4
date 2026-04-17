@@ -1,0 +1,40 @@
+in_source: |-
+  .data
+  char_tmp: .word 0
+
+  .text
+  _start:
+  loop:
+      in 0
+      pop_m char_tmp
+      push_m char_tmp
+      jz end
+      push_m char_tmp
+      out 1
+      jmp loop
+  end:
+      halt
+in_schedule: |-
+  [(10, 'f'), (20, 'o'), (30, 'o'), (40, '\0')]
+out_code_log: |-
+  0001 - 0C000000 - IN 0
+  0002 - 03000000 - POP_M char_tmp
+  0003 - 02000000 - PUSH_M char_tmp
+  0004 - 09000008 - JZ end
+  0005 - 02000000 - PUSH_M char_tmp
+  0006 - 0D000001 - OUT 1
+  0007 - 08000001 - JMP loop
+  0008 - 0F000000 - HALT 0
+out_log: |-
+  Tick: 0001 | PC: 0001 | Stk: [] | Exec: IN 0 || POP_M 0 (Superscalar)
+  Tick: 0002 | PIPELINE STALL
+  Tick: 0003 | Pipeline Active [MemWrite: 0 <- 0]
+  Tick: 0004 | PC: 0003 | Stk: [0] | Exec: PUSH_M 0
+  Tick: 0005 | PIPELINE STALL
+  Tick: 0006 | Pipeline Active
+  Tick: 0007 | PC: 0004 | Stk: [] | Exec: JZ 8
+  Tick: 0008 | Pipeline Active
+  Tick: 0009 | PC: 0008 | Stk: [] | Exec: HALT 0
+  Total Ticks: 9
+  Instructions Executed: 5
+  Output:

@@ -1,131 +1,113 @@
-%define PORT_CHAR_OUT 1
-%define PORT_INT_OUT 2
-%define MAX_NUM 999
-%define MIN_NUM 99
-
 .data
-.org 0x0100
-max_pal:  .word 0
-a:        .word 0
-b:        .word 0
-product:  .word 0
-temp:     .word 0
-reversed: .word 0
-rem:      .word 0
+max_pal: .word 0
+i:       .word 999
+j:       .word 999
+prod:    .word 0
+
+
+temp:    .word 0
+rev:     .word 0
 
 .text
-.org 0x0000
-start:
-    PUSH MAX_NUM
-    POP_M a
+_start:
+loop_i:
+    push_m i
+    push 99
+    gt
+    jz print_res
 
-loop_a:
-    ; if a == 9 -> print_result
-    PUSH_M a
-    PUSH MIN_NUM
-    CMP
-    PUSH 0     ; инверсия для JZ
-    CMP
-    JZ print_result
+    push_m i
+    pop_m j
 
-    ; b = a (начинаем внутренний цикл от a, чтобы не проверять дубликаты)
-    PUSH_M a
-    POP_M b
 
-loop_b:
-    ; if b == 9 -> next_a
-    PUSH_M b
-    PUSH MIN_NUM
-    CMP
-    PUSH 0     ; инверсия
-    CMP
-    JZ next_a
+loop_j:
+    push_m j
+    push 99
+    gt
+    jz next_i
 
-    ; product = a * b
-    PUSH_M a
-    PUSH_M b
-    MUL
-    POP_M product
 
-    ; if max_pal > product -> next_a
-    ; (т.к. b уменьшается, дальше произведения будут только меньше, смело берем следующее a)
-    PUSH_M max_pal
-    PUSH_M product
-    GT
-    PUSH 0     ; инверсия
-    CMP
-    JZ next_a
+    push_m i
+    push_m j
+    mul
+    pop_m prod
 
-    ; --- Проверка на палиндром ---
-    PUSH_M product
-    POP_M temp
 
-    PUSH 0
-    POP_M reversed
+    push_m prod
+    push_m max_pal
+    gt
+    jz next_i
 
-reverse_loop:
-    ; if temp == 0 -> check_pal
-    PUSH_M temp
-    PUSH 0
-    CMP
-    PUSH 0     ; инверсия
-    CMP
-    JZ check_pal
+    call check_pal
+    jz next_j
 
-    ; rem = temp % 10
-    PUSH_M temp
-    PUSH 10
-    MOD
-    POP_M rem
+    push_m prod
+    pop_m max_pal
 
-    ; reversed = reversed * 10 + rem
-    PUSH_M reversed
-    PUSH 10
-    MUL
-    PUSH_M rem
-    ADD
-    POP_M reversed
+next_j:
+    ; j = j - 1
+    push_m j
+    push 1
+    sub
+    pop_m j
+    jmp loop_j
 
-    ; temp = temp / 10
-    PUSH_M temp
-    PUSH 10
-    DIV
-    POP_M temp
+next_i:
+    ; i = i - 1
+    push_m i
+    push 1
+    sub
+    pop_m i
+    jmp loop_i
 
-    JMP reverse_loop
+print_res:
+    push_m max_pal
+    out 2
+    push 10
+    out 1
+    halt
+
+
 
 check_pal:
-    ; if product == reversed -> update_max
-    PUSH_M product
-    PUSH_M reversed
-    CMP
-    PUSH 0     ; инверсия
-    CMP
-    JZ update_max
-    JMP next_b
+    ; rev = 0
+    push 0
+    pop_m rev
+    ; temp = prod
+    push_m prod
+    pop_m temp
 
-update_max:
-    PUSH_M product
-    POP_M max_pal
+pal_loop:
+    push_m temp
+    push 0
+    gt
+    jz pal_end
 
-next_b:
-    ; b = b - 1
-    PUSH_M b
-    PUSH 1
-    SUB
-    POP_M b
-    JMP loop_b
+    ; rev = rev * 10
+    push_m rev
+    push 10
+    mul
 
-next_a:
-    ; a = a - 1
-    PUSH_M a
-    PUSH 1
-    SUB
-    POP_M a
-    JMP loop_a
+    ; digit = temp % 10
+    push_m temp
+    push 10
+    mod
 
-print_result:
-    ; Выводим ответ через числовой порт
-    PUSH_M max_pal
-    OUT PORT_INT_OUT
-    HALT
+    ; rev = rev + digit
+    add
+    pop_m rev
+
+    ; temp = temp / 10
+    push_m temp
+    push 10
+    div
+    pop_m temp
+
+    jmp pal_loop
+
+pal_end:
+
+    push_m prod
+    push_m rev
+    cmp
+    ret

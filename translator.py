@@ -2,7 +2,7 @@ import sys
 from isa import Opcode, encode_instruction, write_code
 
 
-def translate(source: str) -> tuple[list[int], list[str]]:
+def translate(source: str) -> tuple[list[int], list[str], int]:
     lines = source.split("\n")
     macros: dict[str, int] = {}
     labels: dict[str, int] = {}
@@ -82,20 +82,21 @@ def translate(source: str) -> tuple[list[int], list[str]]:
         hex_code = f"{machine_word & 0xFFFFFFFF:08X}"
         debug_log.append(f"{addr:04X} - {hex_code} - {mnemonica} {arg_str}")
 
-    return memory, debug_log
+        entry_point = labels.get("_start", 0)
+    return memory, debug_log, entry_point
 
+
+def main(source_file: str, target_file: str):
+    with open(source_file, "r", encoding="utf-8") as f:
+        source_code = f.read()
+    mem, dbg, entry_point = translate(source_code)
+    write_code(target_file, mem, entry_point)
+    with open(target_file + ".log", "w", encoding="utf-8") as f:
+        f.write("\n".join(dbg))
 
 if __name__ == "__main__":
+    import sys
     if len(sys.argv) != 3:
         print("Usage: python translator.py <source.asm> <output.bin>")
         sys.exit(1)
-
-    with open(sys.argv[1], "r", encoding="utf-8") as f:
-        source_code = f.read()
-
-    mem, dbg = translate(source_code)
-    write_code(sys.argv[2], mem)
-
-    with open(sys.argv[2] + ".log", "w", encoding="utf-8") as f:
-        f.write("\n".join(dbg))
-    print("Compilation successful.")
+    main(sys.argv[1], sys.argv[2])

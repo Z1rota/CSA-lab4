@@ -23,6 +23,8 @@ class Opcode(int, Enum):
     MUL = 0x11
     GT = 0x13
     DIV = 0x12
+    LOAD = 0x14
+    STORE = 0x15
 
 
 def encode_instruction(opcode: Opcode, operand: int = 0) -> int:
@@ -39,16 +41,20 @@ def decode_instruction(word: int) -> tuple[Opcode, int]:
     return Opcode(op), arg
 
 
-def write_code(filepath: str, memory: list[int]) -> None:
+def write_code(filepath: str, memory: list[int], entry_point: int = 0) -> None:
     with open(filepath, "wb") as f:
+        f.write(struct.pack(">i", entry_point))
         for word in memory:
             f.write(struct.pack(">i", word))
 
-
-def read_code(filepath: str) -> list[int]:
+def read_code(filepath: str) -> tuple[list[int], int]:
     memory = []
+    entry_point = 0
     with open(filepath, "rb") as f:
+        chunk = f.read(4)
+        if chunk and len(chunk) == 4:
+            entry_point = struct.unpack(">i", chunk)[0]
         while chunk := f.read(4):
             if len(chunk) == 4:
                 memory.append(struct.unpack(">i", chunk)[0])
-    return memory
+    return memory, entry_point

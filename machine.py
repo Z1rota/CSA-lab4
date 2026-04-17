@@ -1,5 +1,6 @@
 import sys
 import ast
+import argparse
 import logging
 from isa import Opcode, read_code, decode_instruction
 
@@ -7,24 +8,23 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 class DataPath:
-    """Тракт данных. Включает память, АЛУ, аппаратные стеки и порты ввода/вывода."""
+    """Тракт данных. Включает память, АЛУ, Аппаратные стеки и порты ввода/вывода."""
 
-    def __init__(
-        self,
-        memory_size: int,
-        memory_init: list[int],
-        io_schedule: list[tuple[int, str]],
-    ):
+    def __init__(self, memory_size: int, memory_init: list[int], io_schedule: list[tuple[int, str]]):
         self.memory = memory_init + [0] * (memory_size - len(memory_init))
+
+        # Аппаратные стеки (изолированы от ОЗУ)
         self.data_stack: list[int] = []
         self.return_stack: list[int] = []
+        self.MAX_STACK = 256
 
-        # Теневой регистр
+        # Теневой регистр  (Superscalar/Pipelining)
         self.shadow_data = 0
         self.shadow_addr = -1
         self.shadow_busy_ticks = 0
         self.shadow_pending = False
 
+        # Прерывания, порты и тд (Interrupts, ports, etc)
         self.schedule = io_schedule
         self.port_in_buffer: list[str] = []
         self.out_buffer = ""
@@ -53,13 +53,17 @@ class DataPath:
         self.shadow_pending = True
 
     def is_shadow_match(self, addr: int) -> bool:
-        return self.shadow_addr == addr
+        return self.shadow_pending and self.shadow_addr == addr
 
     def push(self, val: int):
+        if len(self.data_stack) >= self.MAX_STACK:
+            raise OverflowError("Data Stack Overflow")
         self.data_stack.append(val)
 
     def pop(self) -> int:
-        return self.data_stack.pop() if self.data_stack else 0
+        if not self.data_stack:
+            raise IndexError("Data Stack Underflow")
+        return self.data_stack.pop()
 
     def alu_op(self, opcode: Opcode):
         if opcode == Opcode.ADD:
@@ -95,9 +99,9 @@ class DataPath:
 
 
 class ControlUnit:
-    """Блок управления. Динамическое планирование, разрешение зависимостей и прерывания."""
+    """Блок управления. Реализует многотактовое выполнение и суперскалярность."""
 
-    def __init__(self, data_path: DataPath, max_log_ticks: int = 1500):
+    def __init__(self, data_path: DataPath, superscalar_enabled: bool = True, max_log_ticks: int = 1500):
         self.dp = data_path
         self.pc = 0
         self.tick = 0
@@ -106,28 +110,24 @@ class ControlUnit:
         self.halted = False
         self.bypass_log = ""
         self.max_log_ticks = max_log_ticks
+        self.superscalar_enabled = superscalar_enabled
+        self.instructions_executed = 0
 
     def log_state(self, msg: str):
         if self.tick <= self.max_log_ticks:
-            logging.info(msg)
-        elif self.tick == self.max_log_ticks + 1:
-            logging.info(
-                "\n[... Потактовый лог отключен после {self.max_log_ticks} ради производительности ...]"
-            )
-            logging.info("[...Процессор продолжает вычисления в фоновом режиме...]\n")
+            logging.debug(msg)
+
+    def get_instruction_cost(self, opcode: Opcode) -> int:
+        """Возвращает базовое количество тактов на фазу Execute."""
+        if opcode in {Opcode.PUSH_M, Opcode.POP_M}:
+            return 2
+        return 1
 
     def can_superscalar(self, op1: Opcode, op2: Opcode) -> bool:
-        alu_ops = {
-            Opcode.PUSH,
-            Opcode.ADD,
-            Opcode.SUB,
-            Opcode.MUL,
-            Opcode.DIV,
-            Opcode.MOD,
-            Opcode.CMP,
-            Opcode.GT,
-            Opcode.IN,
-        }
+        if not self.superscalar_enabled:
+            return False
+        alu_ops = {Opcode.PUSH, Opcode.ADD, Opcode.SUB, Opcode.MUL, Opcode.DIV, Opcode.MOD, Opcode.CMP, Opcode.GT,
+                   Opcode.IN}
         if op1 in alu_ops and op2 == Opcode.POP_M:
             if self.dp.shadow_busy_ticks > 0:
                 return False
@@ -137,30 +137,21 @@ class ControlUnit:
         return False
 
     def execute_single(self, opcode: Opcode, arg: int):
+        self.instructions_executed += 1
         if opcode == Opcode.NOP:
             pass
         elif opcode == Opcode.HALT:
             self.halted = True
-        elif opcode in {
-            Opcode.ADD,
-            Opcode.SUB,
-            Opcode.MUL,
-            Opcode.DIV,
-            Opcode.MOD,
-            Opcode.CMP,
-            Opcode.GT,
-        }:
+        elif opcode in {Opcode.ADD, Opcode.SUB, Opcode.MUL, Opcode.DIV, Opcode.MOD, Opcode.CMP, Opcode.GT}:
             self.dp.alu_op(opcode)
         elif opcode == Opcode.PUSH:
             self.dp.push(arg)
         elif opcode == Opcode.PUSH_M:
             if self.dp.is_shadow_match(arg):
                 self.dp.push(self.dp.shadow_data)
-                self.stall_ticks = 0
-                self.bypass_log = " [Reverse SWAP bypass]"
+                self.bypass_log = " [Bypass from Shadow]"
             else:
                 self.dp.push(self.dp.memory[arg])
-                self.stall_ticks = 1
         elif opcode == Opcode.POP_M:
             self.dp.trigger_shadow_write(arg, self.dp.pop())
         elif opcode == Opcode.IN:
@@ -170,8 +161,7 @@ class ControlUnit:
         elif opcode == Opcode.JMP:
             self.pc = arg
         elif opcode == Opcode.JZ:
-            if self.dp.pop() == 0:
-                self.pc = arg
+            if self.dp.pop() == 0: self.pc = arg
         elif opcode == Opcode.CALL:
             self.dp.return_stack.append(self.pc)
             self.pc = arg
@@ -182,6 +172,17 @@ class ControlUnit:
         elif opcode == Opcode.IRET:
             self.pc = self.dp.return_stack.pop()
             self.ie = True
+        elif opcode == Opcode.LOAD:
+            addr = self.dp.pop()
+            # Проверка bypass
+            if self.dp.is_shadow_match(addr):
+                self.dp.push(self.dp.shadow_data)
+            else:
+                self.dp.push(self.dp.memory[addr])
+        elif opcode == Opcode.STORE:
+            val = self.dp.pop()
+            addr = self.dp.pop()
+            self.dp.trigger_shadow_write(addr, val)
 
     def process_next_tick(self):
         self.tick += 1
@@ -193,36 +194,40 @@ class ControlUnit:
             self.ie = False
             self.dp.return_stack.append(self.pc)
             self.pc = 0x0010
-            self.log_state(f"Tick: {self.tick:04d} |INTERRUPT TRAP")
+            self.log_state(f"Tick: {self.tick:04d} | INTERRUPT TRAP")
             return
 
         if self.stall_ticks > 0:
             self.stall_ticks -= 1
-            self.log_state(
-                f"Tick: {self.tick:04d} | PC: {self.pc:04X} | PIPELINE STALL (Wait for Mem){bg_log}"
-            )
+            if self.stall_ticks == 0:
+                self.log_state(f"Tick: {self.tick:04d} | Pipeline Active{bg_log}")
+            else:
+                self.log_state(f"Tick: {self.tick:04d} | PIPELINE STALL{bg_log}")
             return
 
+        # Fetch stage
         word1 = self.dp.memory[self.pc]
-        word2 = self.dp.memory[self.pc + 1]
         op1, arg1 = decode_instruction(word1)
+
+        word2 = self.dp.memory[self.pc + 1] if self.pc + 1 < len(self.dp.memory) else 0
         op2, arg2 = decode_instruction(word2)
 
-        if op1 in {Opcode.PUSH_M, Opcode.POP_M} and self.dp.shadow_busy_ticks > 0:
-            if op1 == Opcode.PUSH_M and self.dp.is_shadow_match(arg1):
-                pass
-            else:
-                self.stall_ticks = 1
-                self.log_state(
-                    f"Tick: {self.tick:04d} | PC: {self.pc:04X} | STRUCTURAL STALL (Shadow Busy){bg_log}"
-                )
-                return
-
         old_pc = self.pc
+
+
+        if op1 == Opcode.PUSH_M and self.dp.shadow_busy_ticks > 0 and not self.dp.is_shadow_match(arg1):
+            self.stall_ticks = 1
+            self.log_state(f"Tick: {self.tick:04d} | PC: {self.pc:04X} | STALL (Shadow Memory Busy){bg_log}")
+            return
+
+        # Execute stage
+        fetch_cost = 1
         if self.can_superscalar(op1, op2):
             self.pc += 2
             self.execute_single(op1, arg1)
             self.execute_single(op2, arg2)
+            exec_cost = max(self.get_instruction_cost(op1), self.get_instruction_cost(op2))
+            self.stall_ticks = fetch_cost + exec_cost - 1
             self.log_state(
                 f"Tick: {self.tick:04d} | PC: {old_pc:04X} | Stk: {self.dp.data_stack} | "
                 f"Exec: {op1.name} {arg1} || {op2.name} {arg2} (Superscalar){self.bypass_log}{bg_log}"
@@ -230,43 +235,47 @@ class ControlUnit:
         else:
             self.pc += 1
             self.execute_single(op1, arg1)
+            exec_cost = self.get_instruction_cost(op1)
+            self.stall_ticks = fetch_cost + exec_cost - 1
             self.log_state(
                 f"Tick: {self.tick:04d} | PC: {old_pc:04X} | Stk: {self.dp.data_stack} | "
                 f"Exec: {op1.name} {arg1}{self.bypass_log}{bg_log}"
             )
 
     def run(self):
-        logging.info("--- Simulation Started ---")
         try:
-            while not self.halted and self.tick < 50000000:
+            while not self.halted and self.tick < 5000000:
                 self.process_next_tick()
-        except IndexError:
-            logging.error("Execution out of bounds / Stack underflow")
+        except Exception as e:
+            logging.error(f"Execution fault: {e}")
 
-        if self.tick >= 50000000:
-            logging.warning("Tick limit reached!")
-
-        logging.info("--- Simulation Ended ---")
         logging.info(f"Total Ticks: {self.tick}")
-        logging.info(f"Output Buffer: {self.dp.out_buffer}")
+        logging.info(f"Instructions Executed: {self.instructions_executed}")
+        logging.info(f"Output: {self.dp.out_buffer}")
 
 
-def main():
-    if len(sys.argv) != 3:
-        print("Usage: python machine.py <code.bin> <schedule_file>")
-        sys.exit(1)
-
-    mem_init = read_code(sys.argv[1])
+def main(code_file: str, schedule_file: str, no_superscalar: bool):
+    mem_init, entry_point = read_code(code_file)
     schedule = []
-    with open(sys.argv[2], "r", encoding="utf-8") as f:
-        content = f.read().strip()
-        if content:
-            schedule = ast.literal_eval(content)
+    if schedule_file:
+        try:
+            with open(schedule_file, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if content:
+                    schedule = ast.literal_eval(content)
+        except FileNotFoundError:
+            pass
 
     dp = DataPath(2048, mem_init, schedule)
-    cpu = ControlUnit(dp)
+    cpu = ControlUnit(dp, superscalar_enabled=not no_superscalar)
+    cpu.pc = entry_point
     cpu.run()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("code", help="binary file")
+    parser.add_argument("schedule", nargs='?', default="", help="IO schedule txt")
+    parser.add_argument("--no-superscalar", action="store_true", help="Disable superscalar execution")
+    args = parser.parse_args()
+    main(args.code, args.schedule, args.no_superscalar)
