@@ -25,7 +25,7 @@ def test_translator_and_machine(golden, caplog):
         with open(schedule, "w", encoding="utf-8") as file:
             file.write(golden.get("in_schedule", ""))
 
-        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+        with contextlib.redirect_stdout(io.StringIO()):
             translator.main(source, target)
             print("============================================================")
 

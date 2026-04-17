@@ -94,8 +94,10 @@ def main(source_file: str, target_file: str):
     with open(target_file + ".log", "w", encoding="utf-8") as f:
         f.write("\n".join(dbg))
 
+
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) != 3:
         print("Usage: python translator.py <source.asm> <output.bin>")
         sys.exit(1)

@@ -47,6 +47,7 @@ def write_code(filepath: str, memory: list[int], entry_point: int = 0) -> None:
         for word in memory:
             f.write(struct.pack(">i", word))
 
+
 def read_code(filepath: str) -> tuple[list[int], int]:
     memory = []
     entry_point = 0

@@ -1,4 +1,3 @@
-import sys
 import ast
 import argparse
 import logging
@@ -10,7 +9,12 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 class DataPath:
     """Тракт данных. Включает память, АЛУ, Аппаратные стеки и порты ввода/вывода."""
 
-    def __init__(self, memory_size: int, memory_init: list[int], io_schedule: list[tuple[int, str]]):
+    def __init__(
+        self,
+        memory_size: int,
+        memory_init: list[int],
+        io_schedule: list[tuple[int, str]],
+    ):
         self.memory = memory_init + [0] * (memory_size - len(memory_init))
 
         # Аппаратные стеки (изолированы от ОЗУ)
@@ -101,7 +105,12 @@ class DataPath:
 class ControlUnit:
     """Блок управления. Реализует многотактовое выполнение и суперскалярность."""
 
-    def __init__(self, data_path: DataPath, superscalar_enabled: bool = True, max_log_ticks: int = 1500):
+    def __init__(
+        self,
+        data_path: DataPath,
+        superscalar_enabled: bool = True,
+        max_log_ticks: int = 1500,
+    ):
         self.dp = data_path
         self.pc = 0
         self.tick = 0
@@ -126,8 +135,17 @@ class ControlUnit:
     def can_superscalar(self, op1: Opcode, op2: Opcode) -> bool:
         if not self.superscalar_enabled:
             return False
-        alu_ops = {Opcode.PUSH, Opcode.ADD, Opcode.SUB, Opcode.MUL, Opcode.DIV, Opcode.MOD, Opcode.CMP, Opcode.GT,
-                   Opcode.IN}
+        alu_ops = {
+            Opcode.PUSH,
+            Opcode.ADD,
+            Opcode.SUB,
+            Opcode.MUL,
+            Opcode.DIV,
+            Opcode.MOD,
+            Opcode.CMP,
+            Opcode.GT,
+            Opcode.IN,
+        }
         if op1 in alu_ops and op2 == Opcode.POP_M:
             if self.dp.shadow_busy_ticks > 0:
                 return False
@@ -142,7 +160,15 @@ class ControlUnit:
             pass
         elif opcode == Opcode.HALT:
             self.halted = True
-        elif opcode in {Opcode.ADD, Opcode.SUB, Opcode.MUL, Opcode.DIV, Opcode.MOD, Opcode.CMP, Opcode.GT}:
+        elif opcode in {
+            Opcode.ADD,
+            Opcode.SUB,
+            Opcode.MUL,
+            Opcode.DIV,
+            Opcode.MOD,
+            Opcode.CMP,
+            Opcode.GT,
+        }:
             self.dp.alu_op(opcode)
         elif opcode == Opcode.PUSH:
             self.dp.push(arg)
@@ -161,7 +187,8 @@ class ControlUnit:
         elif opcode == Opcode.JMP:
             self.pc = arg
         elif opcode == Opcode.JZ:
-            if self.dp.pop() == 0: self.pc = arg
+            if self.dp.pop() == 0:
+                self.pc = arg
         elif opcode == Opcode.CALL:
             self.dp.return_stack.append(self.pc)
             self.pc = arg
@@ -214,10 +241,15 @@ class ControlUnit:
 
         old_pc = self.pc
 
-
-        if op1 == Opcode.PUSH_M and self.dp.shadow_busy_ticks > 0 and not self.dp.is_shadow_match(arg1):
+        if (
+            op1 == Opcode.PUSH_M
+            and self.dp.shadow_busy_ticks > 0
+            and not self.dp.is_shadow_match(arg1)
+        ):
             self.stall_ticks = 1
-            self.log_state(f"Tick: {self.tick:04d} | PC: {self.pc:04X} | STALL (Shadow Memory Busy){bg_log}")
+            self.log_state(
+                f"Tick: {self.tick:04d} | PC: {self.pc:04X} | STALL (Shadow Memory Busy){bg_log}"
+            )
             return
 
         # Execute stage
@@ -226,7 +258,9 @@ class ControlUnit:
             self.pc += 2
             self.execute_single(op1, arg1)
             self.execute_single(op2, arg2)
-            exec_cost = max(self.get_instruction_cost(op1), self.get_instruction_cost(op2))
+            exec_cost = max(
+                self.get_instruction_cost(op1), self.get_instruction_cost(op2)
+            )
             self.stall_ticks = fetch_cost + exec_cost - 1
             self.log_state(
                 f"Tick: {self.tick:04d} | PC: {old_pc:04X} | Stk: {self.dp.data_stack} | "
@@ -275,7 +309,9 @@ def main(code_file: str, schedule_file: str, no_superscalar: bool):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("code", help="binary file")
-    parser.add_argument("schedule", nargs='?', default="", help="IO schedule txt")
-    parser.add_argument("--no-superscalar", action="store_true", help="Disable superscalar execution")
+    parser.add_argument("schedule", nargs="?", default="", help="IO schedule txt")
+    parser.add_argument(
+        "--no-superscalar", action="store_true", help="Disable superscalar execution"
+    )
     args = parser.parse_args()
     main(args.code, args.schedule, args.no_superscalar)
