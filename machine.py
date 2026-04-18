@@ -46,6 +46,8 @@ class DataPath:
         while self.schedule and current_tick >= self.schedule[0][0]:
             _, char = self.schedule.pop(0)
             self.port_in_buffer.append(char)
+
+        if self.port_in_buffer:
             self.interrupt_pin = True
 
         return bg_log
