@@ -142,13 +142,13 @@ Control Unit (CU) за 1 такт Fetch достает 2 инструкции. �
             |      +---->| TOS|<-------->| Unit 1      |
             |      |     +----+          +-------------+---> [Port 2 Int OUT]
             |      |       ^                    |
-            |      |   (Hardware Data Stack)    |
+            |      |     (Data Stack)           |
             |      |     (Depth: 256)           |
             v      v                            | (1 такт: Bypass / Swap)
     +--------------------+                      v
-    |   Main Memory      |               +-------------+
-+-->|   (Code + Data)    | <=============| TOS_SHADOW  |
-|   |   (Von Neumann)    |   (Фоновая    | Register    |
+    |                    |               +-------------+
++-->|     Main Memory    | <=============| TOS_SHADOW  |
+|   |                    |   (Фоновая    | Register    |
 |   +--------------------+  запись: 2 т.)+-------------+
 |            |      |
 |  (Fetch 64-bit: 2 Instructions)
@@ -167,7 +167,7 @@ Control Unit (CU) за 1 такт Fetch достает 2 инструкции. �
 |               | (Jumps / Traps)
 |               v
 |     +--------------------+       +----------------+
-|     | Control Execution  |       | Hardware       |
+|     | Control Execution  |       |                |
 |     | Unit 2             | <---> | Return Stack   |
 |     +--------------------+       | (Depth: 256)   |
 |        |                         +----------------+
