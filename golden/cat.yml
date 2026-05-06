@@ -32,7 +32,7 @@ in_source: |-
       jmp idle           
 
 in_schedule: |-
-  [(10, 'f'), (20, 'o'), (30, 'o'), (40, '\0')]
+  [(10, 'f'), (15, 'o'), (20, 'o'), (25, '\0')]
 out_log: |-
   Tick: 0001 | PC: 0000 | Stk: [] | Exec: JMP 256
   Tick: 0002 | Pipeline Active
